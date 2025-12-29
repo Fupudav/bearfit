@@ -66,6 +66,9 @@ document
     addXp(xp);
     updateStreak();
     completeChallengeDay(currentSession.challengeId);
+    if (window.applySessionStats) {
+      window.applySessionStats(currentSession);
+    }
 
     saveUserData(userData); // 🔒 sécurité
     if (window.refreshUI) {

@@ -50,6 +50,10 @@ function refreshUI() {
   if (window.renderChallenges) {
     window.renderChallenges();
   }
+
+  if (typeof renderStats === "function") {
+    renderStats();
+  }
 }
 
 // RAFRAÎCHISSEMENT AU CHARGEMENT

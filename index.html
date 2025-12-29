@@ -43,6 +43,46 @@
         </div>
       </section>
 
+      <!-- Écran Stats -->
+      <section id="stats" class="screen">
+        <h2>Stats</h2>
+
+        <div class="card">
+          <p>XP total : <span id="stats-xp">0</span></p>
+          <p>Strike global : <span id="stats-streak">0</span> jours</p>
+        </div>
+
+        <div class="card">
+          <h3>Pompes</h3>
+          <p>Total : <span id="stats-total-pompes">0</span></p>
+          <p>Record séance : <span id="stats-max-pompes">0</span></p>
+        </div>
+
+        <div class="card">
+          <h3>Gainage</h3>
+          <p>Total : <span id="stats-total-gainage">0</span> s</p>
+          <p>Record séance : <span id="stats-max-gainage">0</span> s</p>
+        </div>
+
+        <div class="card">
+          <h3>Abdos</h3>
+          <p>Total : <span id="stats-total-abdos">0</span></p>
+          <p>Record séance : <span id="stats-max-abdos">0</span></p>
+        </div>
+
+        <div class="card">
+          <h3>Triceps haltères</h3>
+          <p>Total : <span id="stats-total-triceps">0</span></p>
+          <p>Record séance : <span id="stats-max-triceps">0</span></p>
+        </div>
+
+        <div class="card">
+          <h3>Développé couché</h3>
+          <p>Total : <span id="stats-total-developpe">0</span></p>
+          <p>Record séance : <span id="stats-max-developpe">0</span></p>
+        </div>
+      </section>
+
       <!-- Écran Séance libre -->
       <section id="free" class="screen">
         <h2>Séance libre</h2>
@@ -116,6 +156,7 @@
     <nav class="bottom-nav">
       <button data-screen="home" class="nav-btn active">Accueil</button>
       <button data-screen="challenges" class="nav-btn">Challenges</button>
+      <button data-screen="stats" class="nav-btn">Stats</button>
       <button data-screen="free" class="nav-btn">Séance libre</button>
       <button data-screen="success" class="nav-btn">Succès</button>
       <button data-screen="profile" class="nav-btn">Profil</button>
@@ -128,6 +169,7 @@
   <script src="./challenges_ui.js"></script>
   <script src="./navigation.js"></script>
   <script src="./ui.js"></script>
+  <script src="./stats_ui.js"></script>
   <script src="./session_ui.js"></script>
 </body>
 

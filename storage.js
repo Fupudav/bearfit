@@ -192,3 +192,67 @@ function calculateSessionXp(session) {
 
 // Export
 window.calculateSessionXp = calculateSessionXp;
+
+// CALCUL VOLUME D'UNE SÉANCE
+function computeSessionVolume(session) {
+  if (!session) return 0;
+
+  if (session.type === "reps") {
+    return session.series.reduce((sum, reps) => sum + reps, 0);
+  }
+
+  if (session.type === "time") {
+    return session.series.reduce((sum, seconds) => sum + seconds, 0);
+  }
+
+  return 0;
+}
+
+// APPLIQUER STATS D'UNE SÉANCE
+function applySessionStats(session) {
+  if (!session || !session.challengeId) return;
+
+  const volume = computeSessionVolume(session);
+
+  switch (session.challengeId) {
+    case "pushups":
+      userData.stats.totalPompes += volume;
+      userData.stats.maxPompes = Math.max(
+        userData.stats.maxPompes,
+        volume
+      );
+      break;
+    case "plank":
+      userData.stats.totalGainage += volume;
+      userData.stats.maxGainage = Math.max(
+        userData.stats.maxGainage,
+        volume
+      );
+      break;
+    case "abs":
+      userData.stats.totalAbdos += volume;
+      userData.stats.maxAbdos = Math.max(userData.stats.maxAbdos, volume);
+      break;
+    case "triceps":
+      userData.stats.totalTriceps += volume;
+      userData.stats.maxTriceps = Math.max(
+        userData.stats.maxTriceps,
+        volume
+      );
+      break;
+    case "bench":
+      userData.stats.totalDeveloppe += volume;
+      userData.stats.maxDeveloppe = Math.max(
+        userData.stats.maxDeveloppe,
+        volume
+      );
+      break;
+    default:
+      break;
+  }
+
+  saveUserData(userData);
+}
+
+// Export
+window.applySessionStats = applySessionStats;
