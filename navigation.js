@@ -1,0 +1,35 @@
+// RÉCUPÉRATION DES ÉCRANS
+const screens = document.querySelectorAll(".screen");
+const navButtons = document.querySelectorAll(".nav-btn");
+
+// FONCTION D'AFFICHAGE D'ÉCRAN
+function showScreen(screenId) {
+  screens.forEach((screen) => {
+    screen.classList.remove("active");
+  });
+
+  const target = document.getElementById(screenId);
+  if (target) {
+    target.classList.add("active");
+  }
+
+  navButtons.forEach((btn) => {
+    btn.classList.remove("active");
+  });
+
+  const activeBtn = document.querySelector(`[data-screen="${screenId}"]`);
+  if (activeBtn) {
+    activeBtn.classList.add("active");
+  }
+}
+
+// ÉVÉNEMENTS SUR LES BOUTONS
+navButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const screenId = button.dataset.screen;
+    showScreen(screenId);
+  });
+});
+
+// ÉCRAN PAR DÉFAUT AU LANCEMENT
+showScreen("home");

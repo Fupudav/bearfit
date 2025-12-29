@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>BearFit Challenge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- On ajoutera le CSS plus tard -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- HEADER -->
+    <header class="app-header">
+      <h1 id="app-title">BearFit Challenge</h1>
+      <div id="header-xp">
+        XP total : <span id="header-xp-value">0</span>
+      </div>
+    </header>
+
+    <!-- CONTENU PRINCIPAL -->
+    <main id="screen-container">
+
+      <!-- Écran Accueil -->
+      <section id="home" class="screen active">
+        <h2>Accueil</h2>
+        <p>Strike global : <span id="home-streak">0</span> jours</p>
+        <p>Objectif XP du jour : <span id="home-daily-target">40</span></p>
+        <p>XP aujourd'hui : <span id="home-today-xp">0</span></p>
+
+        <div>
+          <h3>Objectif du jour</h3>
+          <p id="home-main-objective">–</p>
+          <p id="home-secondary-objective">–</p>
+        </div>
+      </section>
+
+      <!-- Écran Challenges -->
+      <section id="challenges" class="screen">
+        <h2>Challenges</h2>
+        <div id="challenge-list">
+          <!-- Les tuiles de challenge seront générées en JS -->
+        </div>
+      </section>
+
+      <!-- Écran Séance libre -->
+      <section id="free" class="screen">
+        <h2>Séance libre</h2>
+        <div>
+          <label for="free-exercise">Exercice :</label>
+          <select id="free-exercise">
+            <option value="pushups">Pompes</option>
+            <option value="plank">Gainage</option>
+            <option value="abs">Abdos</option>
+            <option value="triceps">Triceps haltères</option>
+            <option value="bench">Développé couché</option>
+          </select>
+        </div>
+        <div>
+          <label for="free-type">Type :</label>
+          <select id="free-type">
+            <option value="reps">Répétitions</option>
+            <option value="time">Temps (secondes)</option>
+          </select>
+        </div>
+        <div>
+          <label for="free-value">Valeur :</label>
+          <input type="number" id="free-value" min="1" />
+        </div>
+        <button id="btn-free-start">Valider la séance libre</button>
+        <p id="free-result"></p>
+      </section>
+
+      <!-- Écran Succès -->
+      <section id="success" class="screen">
+        <h2>Succès</h2>
+        <div id="success-list">
+          <!-- Liste de succès, on remplira plus tard -->
+        </div>
+      </section>
+
+      <!-- Écran Séance (affiche une séance de challenge) -->
+      <section id="session" class="screen">
+        <h2 id="session-title">Séance</h2>
+
+        <p id="session-subtitle"></p>
+
+        <div id="session-step">
+          <!-- On affichera ici la série actuelle : ex. "Série 1 : 7 pompes" -->
+        </div>
+
+        <button id="session-complete-btn">
+          Série terminée
+        </button>
+
+        <p id="session-progress-text">
+          <!-- Ex : "Série 1 sur 3" -->
+        </p>
+
+        <p id="session-xp-preview">
+          <!-- Ex : "XP prévu : 20" -->
+        </p>
+      </section>
+
+      <!-- Écran Profil -->
+      <section id="profile" class="screen">
+        <h2>Profil</h2>
+        <p>Pseudo : <span id="profile-name"></span></p>
+        <p>Ligue : <span id="profile-league"></span></p>
+        <p>XP total : <span id="profile-xp"></span></p>
+      </section>
+
+    </main>
+
+    <!-- NAVIGATION BASSE -->
+    <nav class="bottom-nav">
+      <button data-screen="home" class="nav-btn active">Accueil</button>
+      <button data-screen="challenges" class="nav-btn">Challenges</button>
+      <button data-screen="free" class="nav-btn">Séance libre</button>
+      <button data-screen="success" class="nav-btn">Succès</button>
+      <button data-screen="profile" class="nav-btn">Profil</button>
+    </nav>
+  </div>
+
+  <!-- On ajoutera les scripts JS plus tard -->
+  <script src="js/storage.js"></script>
+  <script src="js/data_challenges.js"></script>
+  <script src="js/challenges_ui.js"></script>
+  <script src="js/navigation.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/session_ui.js"></script>
+</body>
+</html>
