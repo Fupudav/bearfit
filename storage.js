@@ -10,6 +10,8 @@ const defaultUserData = {
   },
 
   xp: 0,
+  xpToday: 0,
+  lastXpDate: null,
   streakGlobal: 0,
   lastTrainingDate: null,
 
@@ -54,7 +56,16 @@ function loadUserData() {
     saveUserData(defaultUserData);
     return structuredClone(defaultUserData);
   }
-  return JSON.parse(raw);
+  const data = JSON.parse(raw);
+  const today = new Date().toDateString();
+
+  if (data.lastXpDate !== today) {
+    data.xpToday = 0;
+    data.lastXpDate = today;
+    saveUserData(data);
+  }
+
+  return data;
 }
 
 // SAUVEGARDE DES DONNÉES
@@ -68,6 +79,8 @@ let userData = loadUserData();
 // MISE À JOUR DES XP
 function addXp(amount) {
   userData.xp += amount;
+  userData.xpToday += amount;
+  userData.lastXpDate = new Date().toDateString();
   saveUserData(userData);
 }
 
@@ -134,14 +147,22 @@ function completeChallengeDay(challengeId) {
   const currentLevel = progress.level;
   const currentDay = progress.day;
 
-  const daysInLevel = Object.keys(challenge.levels[currentLevel].days).length;
+  const currentLevelData = challenge.levels[currentLevel];
+  if (!currentLevelData) return;
+
+  const daysInLevel = Object.keys(currentLevelData.days).length;
 
   if (currentDay < daysInLevel) {
     progress.day += 1;
   } else {
     // Niveau terminé → on passe au niveau suivant
-    progress.level += 1;
-    progress.day = 1;
+    const nextLevel = currentLevel + 1;
+    if (challenge.levels[nextLevel]) {
+      progress.level = nextLevel;
+      progress.day = 1;
+    } else {
+      progress.day = daysInLevel;
+    }
   }
 
   saveUserData(userData);

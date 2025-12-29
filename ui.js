@@ -1,8 +1,8 @@
 // HEADER XP
 function updateHeaderUI() {
-  const xpEl = document.getElementById("header-xp");
-  if (xpEl) {
-    xpEl.textContent = `${userData.xp} XP`;
+  const xpValueEl = document.getElementById("header-xp-value");
+  if (xpValueEl) {
+    xpValueEl.textContent = `${userData.xp}`;
   }
 }
 
@@ -26,7 +26,7 @@ function updateDailyTargetUI() {
 function updateTodayXpUI() {
   const todayXpEl = document.getElementById("home-today-xp");
   if (todayXpEl) {
-    todayXpEl.textContent = userData.xp;
+    todayXpEl.textContent = userData.xpToday;
   }
 }
 

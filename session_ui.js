@@ -2,6 +2,11 @@ let currentSession = null;
 let currentSerieIndex = 0;
 
 function startSession(session) {
+  if (!session) {
+    alert("Aucune séance disponible pour ce challenge.");
+    return;
+  }
+
   currentSession = session;
   currentSerieIndex = 0;
 
