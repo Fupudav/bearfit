@@ -63,6 +63,9 @@ document
     completeChallengeDay(currentSession.challengeId);
 
     saveUserData(userData); // 🔒 sécurité
+    if (window.refreshUI) {
+      window.refreshUI();
+    }
 
     alert(`Séance terminée 💪 +${xp} XP`);
 

@@ -26,7 +26,7 @@ function updateDailyTargetUI() {
 function updateTodayXpUI() {
   const todayXpEl = document.getElementById("home-today-xp");
   if (todayXpEl) {
-    todayXpEl.textContent = 0; // sera dynamique à l'étape suivante
+    todayXpEl.textContent = userData.xp;
   }
 }
 
@@ -46,6 +46,10 @@ function refreshUI() {
   updateDailyTargetUI();
   updateTodayXpUI();
   updateObjectivesUI();
+
+  if (window.renderChallenges) {
+    window.renderChallenges();
+  }
 }
 
 // RAFRAÎCHISSEMENT AU CHARGEMENT
