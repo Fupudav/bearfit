@@ -21,8 +21,12 @@ function renderChallenges() {
 
     tile.addEventListener("click", () => {
         const session = getTodayChallengeProgram(challenge.id);
+        if (!session) {
+          alert("Ce challenge n'a pas de séance disponible pour aujourd'hui.");
+          return;
+        }
+
         startSession(session);
-        showScreen("session");
         console.log("Séance du jour :", session);
 
         // Stockage temporaire de la séance active
@@ -41,14 +45,3 @@ renderChallenges();
 
 // Rendre accessible depuis la console
 window.renderChallenges = renderChallenges;
-
-function showScreen(screenId) {
-  document.querySelectorAll(".screen").forEach(screen => {
-    screen.classList.remove("active");
-  });
-
-  const target = document.getElementById(screenId);
-  if (target) {
-    target.classList.add("active");
-  }
-}
