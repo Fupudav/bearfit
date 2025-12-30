@@ -38,32 +38,6 @@ function closeCombinedModal() {
   modal.classList.add("hidden");
 }
 
-function buildCombinedSteps(sessions) {
-  const steps = [];
-  const maxSeries = Math.max(...sessions.map((session) => session.series.length));
-
-  for (let serieIndex = 0; serieIndex < maxSeries; serieIndex += 1) {
-    sessions.forEach((session) => {
-      const value = session.series[serieIndex];
-      if (value === undefined) return;
-
-      const challenge = challengePrograms[session.challengeId];
-      steps.push({
-        challengeId: session.challengeId,
-        challengeName: buildChallengeLabel(challenge.name),
-        type: session.type,
-        value,
-        weightInfo: session.weightInfo || null,
-        stepIndex: steps.length + 1,
-        serieIndex: serieIndex + 1,
-        totalSeries: session.series.length,
-      });
-    });
-  }
-
-  return steps;
-}
-
 function handleCombinedStart() {
   const list = document.getElementById("combined-list");
   if (!list) return;
@@ -88,10 +62,15 @@ function handleCombinedStart() {
     sessions.push(session);
   }
 
+  const steps =
+    typeof window.buildCombinedStepsFromSessions === "function"
+      ? window.buildCombinedStepsFromSessions(sessions)
+      : [];
+
   const combinedSession = {
     mode: "combined",
     name: "Séance combinée",
-    steps: buildCombinedSteps(sessions),
+    steps,
   };
 
   if (!combinedSession.steps.length) {

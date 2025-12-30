@@ -87,10 +87,45 @@ function renderHome() {
   updateObjectivesUI();
 }
 
+// RÉGLAGES
+function updateSettingsUI() {
+  const settingsMap = [
+    { inputId: "settings-rest-pushups", valueId: "settings-rest-pushups-value", key: "restTimePompes" },
+    { inputId: "settings-rest-plank", valueId: "settings-rest-plank-value", key: "restTimeGainage" },
+    { inputId: "settings-rest-abs", valueId: "settings-rest-abs-value", key: "restTimeAbdos" },
+    { inputId: "settings-rest-triceps", valueId: "settings-rest-triceps-value", key: "restTimeTriceps" },
+    { inputId: "settings-rest-bench", valueId: "settings-rest-bench-value", key: "restTimeDeveloppe" },
+  ];
+
+  settingsMap.forEach(({ inputId, valueId, key }) => {
+    const input = document.getElementById(inputId);
+    const valueEl = document.getElementById(valueId);
+    if (!input || !valueEl) return;
+
+    const currentValue = userData.settings?.[key] ?? 30;
+    input.value = currentValue;
+    valueEl.textContent = `${currentValue}s`;
+
+    if (!input.dataset.bound) {
+      input.addEventListener("input", (event) => {
+        const value = Number(event.target.value);
+        userData.settings[key] = value;
+        valueEl.textContent = `${value}s`;
+        saveUserData(userData);
+        if (window.refreshUI) {
+          window.refreshUI();
+        }
+      });
+      input.dataset.bound = "true";
+    }
+  });
+}
+
 // RAFRAÎCHISSEMENT GLOBAL UI
 function refreshUI() {
   updateHeaderUI();
   renderHome();
+  updateSettingsUI();
 
   if (window.renderChallenges) {
     window.renderChallenges();

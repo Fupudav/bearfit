@@ -17,6 +17,7 @@ const defaultUserData = {
   lastXpDate: null,
   streakGlobal: 0,
   lastTrainingDate: null,
+  dailyXpGoalBonusDate: null,
   dailyObjectives: {
     dateKey: null,
     main: null,
@@ -50,6 +51,8 @@ const defaultUserData = {
     maxAbdos: 0,
     maxTriceps: 0,
     maxDeveloppe: 0,
+    maxTricepsWeight: 0,
+    maxDeveloppeWeight: 0,
   },
 
   achievements: {},
@@ -166,6 +169,15 @@ function ensureLastChallengeTrainingDateDefaults(data) {
 function ensureUnlockedAchievementsDefaults(data) {
   if (!data.unlockedAchievements || typeof data.unlockedAchievements !== "object") {
     data.unlockedAchievements = {};
+    return true;
+  }
+
+  return false;
+}
+
+function ensureDailyXpGoalBonusDateDefaults(data) {
+  if (data.dailyXpGoalBonusDate === undefined) {
+    data.dailyXpGoalBonusDate = null;
     return true;
   }
 
@@ -489,6 +501,8 @@ function loadUserData() {
   const lastChallengeTrainingDateUpdated =
     ensureLastChallengeTrainingDateDefaults(data);
   const unlockedAchievementsUpdated = ensureUnlockedAchievementsDefaults(data);
+  const dailyXpGoalBonusDateUpdated =
+    ensureDailyXpGoalBonusDateDefaults(data);
   let achievementsUpdated = false;
 
   if (!data.achievements || typeof data.achievements !== "object") {
@@ -509,7 +523,8 @@ function loadUserData() {
     challengeStreaksUpdated ||
     lastChallengeTrainingDateUpdated ||
     unlockedAchievementsUpdated ||
-    achievementsUpdated
+    achievementsUpdated ||
+    dailyXpGoalBonusDateUpdated
   ) {
     saveUserData(data);
   }
