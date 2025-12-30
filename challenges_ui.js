@@ -6,7 +6,20 @@ function renderChallenges() {
 
   container.innerHTML = "";
 
-  Object.values(challengePrograms).forEach((challenge) => {
+  const challenges = Object.values(challengePrograms).filter((challenge) =>
+    typeof window.isChallengeActive === "function"
+      ? window.isChallengeActive(challenge.id)
+      : true
+  );
+
+  if (!challenges.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "Aucun challenge actif pour le moment.";
+    container.appendChild(empty);
+    return;
+  }
+
+  challenges.forEach((challenge) => {
     const progress = userData.challenges[challenge.id];
     const level = progress?.level ?? 1;
     const day = progress?.day ?? 1;

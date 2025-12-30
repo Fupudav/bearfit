@@ -25,6 +25,48 @@ const sessionState = {
   challengeResults: [],
 };
 
+let audioContext = null;
+
+function shouldPlaySound() {
+  return userData.settings?.soundEnabled !== false;
+}
+
+function shouldVibrate() {
+  return userData.settings?.vibrationEnabled !== false;
+}
+
+function playBeep(duration = 0.12, frequency = 640) {
+  if (!shouldPlaySound()) return;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return;
+  if (!audioContext) {
+    audioContext = new AudioCtx();
+  }
+
+  if (audioContext.state === "suspended") {
+    audioContext.resume();
+  }
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  oscillator.type = "sine";
+  oscillator.frequency.value = frequency;
+  gainNode.gain.value = 0.12;
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + duration);
+}
+
+function triggerVibration(duration = 120) {
+  if (!shouldVibrate()) return;
+  if (navigator.vibrate) {
+    navigator.vibrate(duration);
+  }
+}
+
 function formatDuration(totalSeconds) {
   const minutes = Math.floor(totalSeconds / 60)
     .toString()
@@ -440,6 +482,8 @@ function finalizeSession() {
   }
 
   saveUserData(userData);
+  playBeep(0.2, 520);
+  triggerVibration(160);
 
   sessionState.phase = "recap";
   renderRecap();
@@ -475,6 +519,8 @@ function startRestPhase() {
     if (sessionState.restRemainingSec <= 0) {
       clearIntervalSafe(sessionState.restIntervalId);
       sessionState.restIntervalId = null;
+      playBeep(0.14, 720);
+      triggerVibration(140);
       moveToNextStep();
       renderSessionUI();
       return;
@@ -495,6 +541,7 @@ function validateCurrentStep(performedValue) {
   });
 
   sessionState.xpEarnedThisSession += computeStepXp(step, performedValue);
+  triggerVibration(90);
   startRestPhase();
   renderSessionUI();
 }
@@ -747,6 +794,11 @@ function startFreeSessionFromForm() {
   const type = typeSelect.value;
   const target = Number(valueInput.value);
 
+  if (!exerciseKey) {
+    alert("Sélectionne un exercice disponible.");
+    return;
+  }
+
   if (!target || target <= 0) {
     alert("Entre une valeur valide.");
     return;
@@ -831,6 +883,38 @@ function updateFreeWeightUI() {
   }
 }
 
+function updateFreeExerciseOptions() {
+  const exerciseSelect = document.getElementById("free-exercise");
+  if (!exerciseSelect) return;
+
+  const activeIds =
+    typeof window.getActiveChallengeIds === "function"
+      ? window.getActiveChallengeIds()
+      : Object.keys(EXERCISE_LABELS);
+
+  exerciseSelect.innerHTML = "";
+
+  if (!activeIds.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Aucun challenge actif";
+    option.disabled = true;
+    option.selected = true;
+    exerciseSelect.appendChild(option);
+    updateFreeWeightUI();
+    return;
+  }
+
+  activeIds.forEach((challengeId) => {
+    const option = document.createElement("option");
+    option.value = challengeId;
+    option.textContent = getExerciseLabel(challengeId);
+    exerciseSelect.appendChild(option);
+  });
+
+  updateFreeWeightUI();
+}
+
 const sessionMainBtn = document.getElementById("session-complete-btn");
 if (sessionMainBtn) {
   sessionMainBtn.addEventListener("click", handleMainButtonClick);
@@ -865,8 +949,10 @@ document
   .getElementById("free-exercise")
   ?.addEventListener("change", updateFreeWeightUI);
 
+updateFreeExerciseOptions();
 updateFreeWeightUI();
 
 window.startSession = startSoloSession;
 window.startCombinedSession = startCombinedSession;
 window.buildCombinedStepsFromSessions = buildCombinedStepsFromSessions;
+window.updateFreeExerciseOptions = updateFreeExerciseOptions;
