@@ -28,9 +28,12 @@ function startSession(session) {
   document.getElementById("session-xp-preview").textContent = `XP prévu : ${xp}`;
 
   document.getElementById("session-title").textContent = session.name;
+  const weightLabel = session.weightInfo?.label
+    ? ` — ${session.weightInfo.label}`
+    : "";
   document.getElementById(
     "session-subtitle"
-  ).textContent = `Niveau ${session.level} — Jour ${session.day}`;
+  ).textContent = `Niveau ${session.level} — Jour ${session.day}${weightLabel}`;
 
   showCurrentSerie();
 }
@@ -83,12 +86,13 @@ function showCurrentCombinedStep() {
   if (!step) return;
 
   const label = step.type === "reps" ? "répétitions" : "secondes";
+  const weightLabel = step.weightInfo?.label ? ` (${step.weightInfo.label})` : "";
 
   document.getElementById(
     "session-step"
   ).textContent = `${step.challengeName} — Série ${step.serieIndex}/${
     step.totalSeries
-  } : ${step.value} ${label}`;
+  } : ${step.value} ${label}${weightLabel}`;
 
   document.getElementById(
     "session-progress-text"
@@ -316,6 +320,34 @@ function endCombinedSession() {
     showScreen("home");
   }, 1000);
 }
+
+function updateFreeWeightUI() {
+  const exerciseSelect = document.getElementById("free-exercise");
+  const weightRow = document.getElementById("free-weight-row");
+  const weightValue = document.getElementById("free-weight");
+
+  if (!exerciseSelect || !weightRow || !weightValue) return;
+
+  const challengeId = exerciseSelect.value;
+  const info =
+    typeof window.getCurrentChallengeWeightInfo === "function"
+      ? window.getCurrentChallengeWeightInfo(challengeId)
+      : null;
+
+  if (info?.label) {
+    weightRow.style.display = "block";
+    weightValue.textContent = info.label;
+  } else {
+    weightRow.style.display = "none";
+    weightValue.textContent = "";
+  }
+}
+
+document
+  .getElementById("free-exercise")
+  ?.addEventListener("change", updateFreeWeightUI);
+
+updateFreeWeightUI();
 
 function endSession() {
   // Texte

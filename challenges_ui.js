@@ -10,6 +10,10 @@ function renderChallenges() {
     const progress = userData.challenges[challenge.id];
     const level = progress?.level ?? 1;
     const day = progress?.day ?? 1;
+    const weightInfo =
+      typeof window.getChallengeWeightInfo === "function"
+        ? window.getChallengeWeightInfo(challenge.id, level, day)
+        : null;
     const tile = document.createElement("div");
     tile.className = "challenge-tile";
 
@@ -17,6 +21,7 @@ function renderChallenges() {
       <h3>${challenge.name}</h3>
       <p>Type : ${challenge.type === "reps" ? "Répétitions" : "Temps"}</p>
       <p>Niveau ${level} – Jour ${day}</p>
+      ${weightInfo ? `<p>Poids : ${weightInfo.label}</p>` : ""}
     `;
 
     tile.addEventListener("click", () => {

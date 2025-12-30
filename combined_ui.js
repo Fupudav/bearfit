@@ -53,6 +53,7 @@ function buildCombinedSteps(sessions) {
         challengeName: buildChallengeLabel(challenge.name),
         type: session.type,
         value,
+        weightInfo: session.weightInfo || null,
         stepIndex: steps.length + 1,
         serieIndex: serieIndex + 1,
         totalSeries: session.series.length,
