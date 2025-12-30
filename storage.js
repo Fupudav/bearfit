@@ -42,6 +42,7 @@ const defaultUserData = {
     totalAbdos: 0,
     totalTriceps: 0,
     totalDeveloppe: 0,
+    combinedSessionsTotal: 0,
 
     maxPompes: 0,
     maxGainage: 0,
@@ -49,6 +50,9 @@ const defaultUserData = {
     maxTriceps: 0,
     maxDeveloppe: 0,
   },
+
+  achievements: {},
+  achievementEvents: [],
 
   challenges: {
     pushups: { level: 1, day: 1 },
@@ -339,8 +343,25 @@ function loadUserData() {
   const xpTodayUpdated = ensureXpTodayDefaults(data, today);
   const dailyObjectivesUpdated = ensureDailyObjectivesDefaults(data);
   const dailyCountersUpdated = ensureDailyCountersDefaults(data);
+  let achievementsUpdated = false;
 
-  if (statsUpdated || xpTodayUpdated || dailyObjectivesUpdated || dailyCountersUpdated) {
+  if (!data.achievements || typeof data.achievements !== "object") {
+    data.achievements = {};
+    achievementsUpdated = true;
+  }
+
+  if (!Array.isArray(data.achievementEvents)) {
+    data.achievementEvents = [];
+    achievementsUpdated = true;
+  }
+
+  if (
+    statsUpdated ||
+    xpTodayUpdated ||
+    dailyObjectivesUpdated ||
+    dailyCountersUpdated ||
+    achievementsUpdated
+  ) {
     saveUserData(data);
   }
 
@@ -395,6 +416,72 @@ window.ensureDailyCounters = ensureDailyCounters;
 window.evaluateObjectivesAndMaybeReward = evaluateObjectivesAndMaybeReward;
 window.getTodayExpectedVolumes = getTodayExpectedVolumes;
 window.rerollSecondaryObjective = rerollSecondaryObjective;
+
+function getMetricValue(pathString) {
+  if (!pathString) return 0;
+
+  if (pathString.includes(".")) {
+    return pathString.split(".").reduce((acc, key) => {
+      if (!acc || typeof acc !== "object") return 0;
+      const value = acc[key];
+      if (value === undefined || value === null) return 0;
+      return value;
+    }, userData);
+  }
+
+  const value = userData[pathString];
+  return value ?? 0;
+}
+
+function evaluateAchievements() {
+  if (!window.ACHIEVEMENTS || !Array.isArray(window.ACHIEVEMENTS)) return;
+
+  if (!userData.achievements || typeof userData.achievements !== "object") {
+    userData.achievements = {};
+  }
+
+  if (!Array.isArray(userData.achievementEvents)) {
+    userData.achievementEvents = [];
+  }
+
+  window.ACHIEVEMENTS.forEach((def) => {
+    const value = getMetricValue(def.metric);
+    const state =
+      userData.achievements[def.id] || {
+        levelIndex: -1,
+        currentValue: value,
+        claimedLevels: [false, false, false, false, false],
+      };
+
+    const newLevelIndex = def.thresholds.reduce((acc, threshold, index) => {
+      if (value >= threshold) return index;
+      return acc;
+    }, -1);
+
+    if (newLevelIndex > state.levelIndex) {
+      for (let i = state.levelIndex + 1; i <= newLevelIndex; i += 1) {
+        state.claimedLevels[i] = true;
+        userData.achievementEvents.push({
+          id: def.id,
+          levelIndex: i,
+          ts: Date.now(),
+        });
+      }
+      state.levelIndex = newLevelIndex;
+    }
+
+    state.currentValue = value;
+    userData.achievements[def.id] = state;
+  });
+
+  if (userData.achievementEvents.length > 20) {
+    userData.achievementEvents = userData.achievementEvents.slice(-20);
+  }
+
+  saveUserData(userData);
+}
+
+window.evaluateAchievements = evaluateAchievements;
 
 // RECUPERER SEANCE DU JOUR
 function getTodayChallengeProgram(challengeId) {

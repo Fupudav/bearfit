@@ -150,6 +150,9 @@ document
       if (window.evaluateObjectivesAndMaybeReward) {
         window.evaluateObjectivesAndMaybeReward();
       }
+      if (window.evaluateAchievements) {
+        window.evaluateAchievements();
+      }
     }
 
     saveUserData(userData); // 🔒 sécurité
@@ -278,6 +281,15 @@ function endCombinedSession() {
 
     if (window.evaluateObjectivesAndMaybeReward) {
       window.evaluateObjectivesAndMaybeReward();
+    }
+
+    if (userData.stats) {
+      userData.stats.combinedSessionsTotal += 1;
+    }
+    saveUserData(userData);
+
+    if (window.evaluateAchievements) {
+      window.evaluateAchievements();
     }
   }
 
