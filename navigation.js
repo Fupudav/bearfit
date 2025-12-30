@@ -26,6 +26,10 @@ function showScreen(screenId) {
     window.renderStats();
   }
 
+  if (screenId === "leagues" && typeof window.renderLeagues === "function") {
+    window.renderLeagues();
+  }
+
   if (
     screenId === "success" &&
     typeof window.renderSuccesses === "function"

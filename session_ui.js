@@ -427,6 +427,9 @@ function finalizeSession() {
   addXp(sessionState.xpEarnedThisSession);
   const bonus = maybeApplyDailyXpGoalBonus();
   sessionState.xpEarnedThisSession += bonus;
+  if (window.ensureLeagueWeekUpToDate) {
+    window.ensureLeagueWeekUpToDate();
+  }
 
   if (window.evaluateObjectivesAndMaybeReward) {
     window.evaluateObjectivesAndMaybeReward();

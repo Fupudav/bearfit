@@ -1,6 +1,52 @@
 // CLÉ UNIQUE DE SAUVEGARDE
 const STORAGE_KEY = "bearfit_user_data";
 
+const LEAGUE_GHOST_NAMES = [
+  "Ours Alpha",
+  "Ours Boréal",
+  "Griffe Rapide",
+  "Miel Courageux",
+  "Brume du Nord",
+  "Patte d'Acier",
+  "Croc Lunaire",
+  "Rugissement Sage",
+  "Neige Farouche",
+];
+
+const LEAGUE_XP_RANGES = [
+  { min: 100, max: 400 },
+  { min: 300, max: 700 },
+  { min: 600, max: 1000 },
+  { min: 900, max: 1400 },
+  { min: 1200, max: 1800 },
+  { min: 1500, max: 2200 },
+  { min: 1900, max: 2800 },
+  { min: 2300, max: 3500 },
+  { min: 2700, max: 4500 },
+  { min: 3000, max: 6000 },
+];
+
+function getWeekStartISO(date = new Date()) {
+  const copy = new Date(date);
+  const dayIndex = (copy.getDay() + 6) % 7;
+  copy.setDate(copy.getDate() - dayIndex);
+  copy.setHours(0, 0, 0, 0);
+  return copy.toISOString().slice(0, 10);
+}
+
+function getLeagueXpRange(league) {
+  return LEAGUE_XP_RANGES[league - 1] || LEAGUE_XP_RANGES[0];
+}
+
+function generateLeagueGhosts(league) {
+  const range = getLeagueXpRange(league);
+  return LEAGUE_GHOST_NAMES.map((name) => ({
+    name,
+    xp:
+      Math.floor(Math.random() * (range.max - range.min + 1)) + range.min,
+  }));
+}
+
 // DONNÉES PAR DÉFAUT (si rien n'est sauvegardé)
 const defaultUserData = {
   profile: {
@@ -83,6 +129,17 @@ const defaultUserData = {
     bench: { level: 1, day: 1 }
   },
 
+  league: {
+    currentLeague: 1,
+    weekStartISO: getWeekStartISO(new Date()),
+    weekXp: 0,
+    bestLeague: 1,
+    lastResult: null,
+    ghosts: generateLeagueGhosts(1),
+  },
+
+  leagueHistory: [],
+
   settings: {
     dailyXpGoal: 30,
     restTimePompes: 30,
@@ -94,6 +151,58 @@ const defaultUserData = {
     darkMode: true,
   }
 };
+
+function ensureLeagueDefaults(data) {
+  let updated = false;
+  const defaultWeekStart = getWeekStartISO(new Date());
+
+  if (!data.league || typeof data.league !== "object") {
+    data.league = structuredClone(defaultUserData.league);
+    data.league.weekStartISO = defaultWeekStart;
+    return true;
+  }
+
+  if (!Number.isFinite(data.league.currentLeague)) {
+    data.league.currentLeague = 1;
+    updated = true;
+  }
+
+  if (typeof data.league.weekStartISO !== "string") {
+    data.league.weekStartISO = defaultWeekStart;
+    updated = true;
+  }
+
+  if (!Number.isFinite(data.league.weekXp)) {
+    data.league.weekXp = 0;
+    updated = true;
+  }
+
+  if (!Number.isFinite(data.league.bestLeague)) {
+    data.league.bestLeague = data.league.currentLeague;
+    updated = true;
+  }
+
+  if (data.league.lastResult === undefined) {
+    data.league.lastResult = null;
+    updated = true;
+  }
+
+  if (!Array.isArray(data.league.ghosts) || data.league.ghosts.length !== 9) {
+    data.league.ghosts = generateLeagueGhosts(data.league.currentLeague);
+    updated = true;
+  }
+
+  return updated;
+}
+
+function ensureLeagueHistoryDefaults(data) {
+  if (!Array.isArray(data.leagueHistory)) {
+    data.leagueHistory = [];
+    return true;
+  }
+
+  return false;
+}
 
 function ensureStatsDefaults(data) {
   let updated = false;
@@ -503,6 +612,8 @@ function loadUserData() {
   const unlockedAchievementsUpdated = ensureUnlockedAchievementsDefaults(data);
   const dailyXpGoalBonusDateUpdated =
     ensureDailyXpGoalBonusDateDefaults(data);
+  const leagueUpdated = ensureLeagueDefaults(data);
+  const leagueHistoryUpdated = ensureLeagueHistoryDefaults(data);
   let achievementsUpdated = false;
 
   if (!data.achievements || typeof data.achievements !== "object") {
@@ -524,7 +635,9 @@ function loadUserData() {
     lastChallengeTrainingDateUpdated ||
     unlockedAchievementsUpdated ||
     achievementsUpdated ||
-    dailyXpGoalBonusDateUpdated
+    dailyXpGoalBonusDateUpdated ||
+    leagueUpdated ||
+    leagueHistoryUpdated
   ) {
     saveUserData(data);
   }
@@ -549,6 +662,7 @@ function resetUserData() {
 
 // ACCÈS RAPIDE
 let userData = loadUserData();
+ensureLeagueWeekUpToDate();
 
 // MISE À JOUR DES XP
 function addXp(amount) {
@@ -556,6 +670,7 @@ function addXp(amount) {
   userData.xp += amount;
   userData.xpToday.value += amount;
   userData.lastXpDate = userData.xpToday.dateKey;
+  addWeekXp(amount);
   saveUserData(userData);
 }
 
@@ -627,6 +742,10 @@ window.evaluateObjectivesAndMaybeReward = evaluateObjectivesAndMaybeReward;
 window.getTodayExpectedVolumes = getTodayExpectedVolumes;
 window.rerollSecondaryObjective = rerollSecondaryObjective;
 window.resetUserData = resetUserData;
+window.getWeekStartISO = getWeekStartISO;
+window.ensureLeagueWeekUpToDate = ensureLeagueWeekUpToDate;
+window.addWeekXp = addWeekXp;
+window.buildLeagueLeaderboard = buildLeagueLeaderboard;
 
 function getMetricValue(pathString) {
   if (!pathString) return 0;
@@ -740,6 +859,108 @@ function evaluateAchievements() {
 
 window.evaluateAchievements = evaluateAchievements;
 window.getMetricValue = getMetricValue;
+
+function buildLeagueLeaderboard(leagueData) {
+  if (!leagueData) return [];
+  const ghosts = Array.isArray(leagueData.ghosts) ? leagueData.ghosts : [];
+  const entries = ghosts.map((ghost) => ({
+    ...ghost,
+    isUser: false,
+  }));
+  entries.push({
+    name: "Toi",
+    xp: Number.isFinite(leagueData.weekXp) ? leagueData.weekXp : 0,
+    isUser: true,
+  });
+
+  entries.sort((a, b) => {
+    if (b.xp !== a.xp) return b.xp - a.xp;
+    if (a.isUser && !b.isUser) return -1;
+    if (b.isUser && !a.isUser) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  return entries;
+}
+
+function finalizeLeagueWeek() {
+  if (!userData.league) return null;
+  const leagueData = userData.league;
+  const leaderboard = buildLeagueLeaderboard(leagueData);
+  const rank = Math.max(
+    1,
+    leaderboard.findIndex((entry) => entry.isUser) + 1
+  );
+
+  const leagueBefore = leagueData.currentLeague;
+  let leagueAfter = leagueBefore;
+  let status = "maintien";
+
+  if (rank <= 2 && leagueBefore < 10) {
+    leagueAfter = leagueBefore + 1;
+    status = "promotion";
+  } else if (rank >= 9 && leagueBefore > 1) {
+    leagueAfter = leagueBefore - 1;
+    status = "retrogradation";
+  }
+
+  leagueData.currentLeague = leagueAfter;
+  leagueData.bestLeague = Math.max(
+    leagueData.bestLeague ?? leagueAfter,
+    leagueAfter
+  );
+  leagueData.lastResult = {
+    weekStartISO: leagueData.weekStartISO,
+    leagueBefore,
+    leagueAfter,
+    rank,
+    status,
+  };
+
+  if (!Array.isArray(userData.leagueHistory)) {
+    userData.leagueHistory = [];
+  }
+
+  userData.leagueHistory.push({
+    weekStartISO: leagueData.weekStartISO,
+    league: leagueAfter,
+    weekXp: Number.isFinite(leagueData.weekXp) ? leagueData.weekXp : 0,
+    rank,
+    status,
+  });
+
+  return leagueData.lastResult;
+}
+
+function ensureLeagueWeekUpToDate() {
+  if (!userData) return false;
+  ensureLeagueDefaults(userData);
+  ensureLeagueHistoryDefaults(userData);
+
+  const weekStartISONow = getWeekStartISO(new Date());
+  if (userData.league.weekStartISO !== weekStartISONow) {
+    finalizeLeagueWeek();
+    userData.league.weekStartISO = weekStartISONow;
+    userData.league.weekXp = 0;
+    userData.league.ghosts = generateLeagueGhosts(
+      userData.league.currentLeague
+    );
+    saveUserData(userData);
+    if (window.evaluateAchievements) {
+      window.evaluateAchievements();
+    }
+    return true;
+  }
+
+  return false;
+}
+
+function addWeekXp(amount) {
+  if (!Number.isFinite(amount)) return;
+  ensureLeagueWeekUpToDate();
+  if (!userData.league) return;
+  userData.league.weekXp += amount;
+}
 
 // RECUPERER SEANCE DU JOUR
 function getTodayChallengeProgram(challengeId) {
