@@ -43,6 +43,7 @@ function formatObjectiveLine(objective) {
 function updateObjectivesUI() {
   const mainObj = document.getElementById("home-main-objective");
   const secondObj = document.getElementById("home-secondary-objective");
+  const rerollBtn = document.getElementById("home-reroll-secondary");
 
   if (!mainObj || !secondObj) return;
 
@@ -50,11 +51,21 @@ function updateObjectivesUI() {
   if (!dailyObjectives?.main || !dailyObjectives?.secondary) {
     mainObj.textContent = "–";
     secondObj.textContent = "–";
+    if (rerollBtn) {
+      rerollBtn.disabled = true;
+      rerollBtn.textContent = "Reroll (0)";
+    }
     return;
   }
 
   mainObj.textContent = formatObjectiveLine(dailyObjectives.main);
   secondObj.textContent = formatObjectiveLine(dailyObjectives.secondary);
+
+  if (rerollBtn) {
+    const remaining = dailyObjectives.rerollsLeft ?? 0;
+    rerollBtn.disabled = remaining <= 0;
+    rerollBtn.textContent = `Reroll (${Math.max(0, remaining)})`;
+  }
 }
 
 function renderHome() {
@@ -96,3 +107,16 @@ refreshUI();
 // EXPORT DEBUG
 window.refreshUI = refreshUI;
 window.renderHome = renderHome;
+
+document
+  .getElementById("home-reroll-secondary")
+  ?.addEventListener("click", () => {
+    if (!window.rerollSecondaryObjective) return;
+    const result = window.rerollSecondaryObjective();
+    if (!result?.success && result?.message) {
+      alert(result.message);
+    }
+    if (window.refreshUI) {
+      window.refreshUI();
+    }
+  });
