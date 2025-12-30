@@ -373,6 +373,16 @@ function saveUserData(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+function resetUserData() {
+  localStorage.removeItem(STORAGE_KEY);
+  userData = structuredClone(defaultUserData);
+  saveUserData(userData);
+  window.userData = userData;
+  if (window.refreshUI) {
+    window.refreshUI();
+  }
+}
+
 // ACCÈS RAPIDE
 let userData = loadUserData();
 
@@ -416,6 +426,7 @@ window.ensureDailyCounters = ensureDailyCounters;
 window.evaluateObjectivesAndMaybeReward = evaluateObjectivesAndMaybeReward;
 window.getTodayExpectedVolumes = getTodayExpectedVolumes;
 window.rerollSecondaryObjective = rerollSecondaryObjective;
+window.resetUserData = resetUserData;
 
 function getMetricValue(pathString) {
   if (!pathString) return 0;
@@ -490,6 +501,9 @@ function getTodayChallengeProgram(challengeId) {
 
   if (!challenge || !progress) return null;
 
+  const todayKey = new Date().toDateString();
+  if (progress.lastCompletedDate === todayKey) return null;
+
   const level = progress.level;
   const day = progress.day;
 
@@ -516,6 +530,7 @@ function completeChallengeDay(challengeId) {
 
   if (!progress || !challenge) return false;
   const todayKey = new Date().toDateString();
+  if (progress.lastCompletedDate === todayKey) return false;
 
   const currentLevel = progress.level;
   const currentDay = progress.day;

@@ -124,3 +124,15 @@ document
       window.refreshUI();
     }
   });
+
+document
+  .getElementById("profile-reset-btn")
+  ?.addEventListener("click", () => {
+    if (!window.resetUserData) return;
+    const confirmed = window.confirm(
+      "Réinitialiser le profil ? Toutes les données seront effacées."
+    );
+    if (!confirmed) return;
+    window.resetUserData();
+    alert("Profil réinitialisé.");
+  });
