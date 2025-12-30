@@ -204,30 +204,114 @@
       <!-- Écran Réglages -->
       <section id="settings" class="screen">
         <h2>Réglages</h2>
-        <div class="settings-item">
-          <label for="settings-rest-pushups">Récup Pompes</label>
-          <input type="range" id="settings-rest-pushups" min="10" max="180" step="5" />
-          <span id="settings-rest-pushups-value">30s</span>
+        <div class="settings-section">
+          <h3>Objectif XP quotidien</h3>
+          <input type="number" id="settings-daily-xp" min="0" />
         </div>
-        <div class="settings-item">
-          <label for="settings-rest-plank">Récup Gainage</label>
-          <input type="range" id="settings-rest-plank" min="10" max="180" step="5" />
-          <span id="settings-rest-plank-value">30s</span>
+
+        <div class="settings-section">
+          <h3>Jours off par semaine</h3>
+          <select id="settings-weekly-offdays">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
         </div>
-        <div class="settings-item">
-          <label for="settings-rest-abs">Récup Abdos</label>
-          <input type="range" id="settings-rest-abs" min="10" max="180" step="5" />
-          <span id="settings-rest-abs-value">30s</span>
+
+        <div class="settings-section">
+          <h3>Challenges actifs</h3>
+          <label class="toggle-row">
+            <span>Pompes</span>
+            <input type="checkbox" data-challenge-toggle="pushups" />
+          </label>
+          <label class="toggle-row">
+            <span>Gainage</span>
+            <input type="checkbox" data-challenge-toggle="plank" />
+          </label>
+          <label class="toggle-row">
+            <span>Abdos</span>
+            <input type="checkbox" data-challenge-toggle="abs" />
+          </label>
+          <label class="toggle-row">
+            <span>Triceps</span>
+            <input type="checkbox" data-challenge-toggle="triceps" />
+          </label>
+          <label class="toggle-row">
+            <span>Développé</span>
+            <input type="checkbox" data-challenge-toggle="bench" />
+          </label>
         </div>
-        <div class="settings-item">
-          <label for="settings-rest-triceps">Récup Triceps</label>
-          <input type="range" id="settings-rest-triceps" min="10" max="180" step="5" />
-          <span id="settings-rest-triceps-value">45s</span>
+
+        <div class="settings-section">
+          <h3>Thème</h3>
+          <div class="segmented-control">
+            <label>
+              <input type="radio" name="theme" data-theme-option="light" />
+              <span>Clair</span>
+            </label>
+            <label>
+              <input type="radio" name="theme" data-theme-option="dark" />
+              <span>Sombre</span>
+            </label>
+            <label>
+              <input type="radio" name="theme" data-theme-option="auto" />
+              <span>Auto</span>
+            </label>
+          </div>
         </div>
-        <div class="settings-item">
-          <label for="settings-rest-bench">Récup Développé</label>
-          <input type="range" id="settings-rest-bench" min="10" max="180" step="5" />
-          <span id="settings-rest-bench-value">60s</span>
+
+        <div class="settings-section">
+          <h3>Sons & vibrations</h3>
+          <label class="toggle-row">
+            <span>Sons</span>
+            <input type="checkbox" id="settings-sound-enabled" />
+          </label>
+          <label class="toggle-row">
+            <span>Vibrations</span>
+            <input type="checkbox" id="settings-vibration-enabled" />
+          </label>
+        </div>
+
+        <div class="settings-section">
+          <h3>Rappels</h3>
+          <label class="toggle-row">
+            <span>Activer les rappels</span>
+            <input type="checkbox" id="settings-reminders-enabled" />
+          </label>
+          <label for="settings-reminder-daily-time">Rappel quotidien</label>
+          <input type="time" id="settings-reminder-daily-time" />
+          <label for="settings-reminder-xp-time">Rappel objectif XP</label>
+          <input type="time" id="settings-reminder-xp-time" />
+        </div>
+
+        <div class="settings-section">
+          <h3>Temps de repos</h3>
+          <div class="settings-item">
+            <label for="settings-rest-pushups">Récup Pompes</label>
+            <input type="range" id="settings-rest-pushups" min="10" max="180" step="5" />
+            <span id="settings-rest-pushups-value">30s</span>
+          </div>
+          <div class="settings-item">
+            <label for="settings-rest-plank">Récup Gainage</label>
+            <input type="range" id="settings-rest-plank" min="10" max="180" step="5" />
+            <span id="settings-rest-plank-value">30s</span>
+          </div>
+          <div class="settings-item">
+            <label for="settings-rest-abs">Récup Abdos</label>
+            <input type="range" id="settings-rest-abs" min="10" max="180" step="5" />
+            <span id="settings-rest-abs-value">30s</span>
+          </div>
+          <div class="settings-item">
+            <label for="settings-rest-triceps">Récup Triceps</label>
+            <input type="range" id="settings-rest-triceps" min="10" max="180" step="5" />
+            <span id="settings-rest-triceps-value">45s</span>
+          </div>
+          <div class="settings-item">
+            <label for="settings-rest-bench">Récup Développé</label>
+            <input type="range" id="settings-rest-bench" min="10" max="180" step="5" />
+            <span id="settings-rest-bench-value">60s</span>
+          </div>
         </div>
       </section>
 
@@ -254,6 +338,8 @@
         </div>
       </div>
     </div>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
     <!-- NAVIGATION BASSE -->
     <nav class="bottom-nav">

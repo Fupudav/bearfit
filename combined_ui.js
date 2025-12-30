@@ -8,7 +8,20 @@ function renderCombinedList() {
 
   list.innerHTML = "";
 
-  Object.values(challengePrograms).forEach((challenge) => {
+  const challenges = Object.values(challengePrograms).filter((challenge) =>
+    typeof window.isChallengeActive === "function"
+      ? window.isChallengeActive(challenge.id)
+      : true
+  );
+
+  if (!challenges.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "Aucun challenge actif pour la séance combinée.";
+    list.appendChild(empty);
+    return;
+  }
+
+  challenges.forEach((challenge) => {
     const label = document.createElement("label");
     label.className = "combined-option";
 

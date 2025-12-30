@@ -26,6 +26,16 @@ const LEAGUE_XP_RANGES = [
   { min: 3000, max: 6000 },
 ];
 
+const CHALLENGE_IDS = ["pushups", "plank", "abs", "triceps", "bench"];
+const OFF_DAYS_PATTERNS = {
+  0: [],
+  1: ["sun"],
+  2: ["sat", "sun"],
+  3: ["wed", "sat", "sun"],
+};
+
+const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
 function getWeekStartISO(date = new Date()) {
   const copy = new Date(date);
   const dayIndex = (copy.getDay() + 6) % 7;
@@ -147,10 +157,157 @@ const defaultUserData = {
     restTimeAbdos: 30,
     restTimeTriceps: 45,
     restTimeDeveloppe: 60,
-    notificationsEnabled: true,
-    darkMode: true,
+    weeklyOffDays: 0,
+    offDaysPattern: [],
+    activeChallenges: {
+      pushups: true,
+      plank: true,
+      abs: true,
+      triceps: true,
+      bench: true,
+    },
+    theme: "auto",
+    soundEnabled: true,
+    vibrationEnabled: true,
+    remindersEnabled: false,
+    reminderDailyTime: "19:00",
+    reminderXpGoalTime: "21:00",
   }
 };
+
+function getOffDaysPattern(weeklyOffDays) {
+  const count = Number.isFinite(weeklyOffDays)
+    ? Math.min(3, Math.max(0, weeklyOffDays))
+    : 0;
+  return OFF_DAYS_PATTERNS[count] || OFF_DAYS_PATTERNS[0];
+}
+
+function getDayKey(date) {
+  return DAY_KEYS[date.getDay()] || "sun";
+}
+
+function isDateOffDay(date, settings = userData?.settings) {
+  if (!settings) return false;
+  const pattern = Array.isArray(settings.offDaysPattern)
+    ? settings.offDaysPattern
+    : [];
+  return pattern.includes(getDayKey(date));
+}
+
+function isTodayOffDay() {
+  return isDateOffDay(new Date());
+}
+
+function getActiveChallengeIds() {
+  const active = userData?.settings?.activeChallenges || {};
+  return CHALLENGE_IDS.filter((challengeId) => active[challengeId] !== false);
+}
+
+function isChallengeActive(challengeId) {
+  if (!challengeId) return true;
+  const active = userData?.settings?.activeChallenges;
+  if (!active || typeof active !== "object") return true;
+  return active[challengeId] !== false;
+}
+
+function ensureSettingsDefaults(data) {
+  let updated = false;
+  if (!data.settings || typeof data.settings !== "object") {
+    data.settings = structuredClone(defaultUserData.settings);
+    return true;
+  }
+
+  Object.entries(defaultUserData.settings).forEach(([key, value]) => {
+    if (data.settings[key] === undefined) {
+      data.settings[key] = structuredClone(value);
+      updated = true;
+    }
+  });
+
+  if (typeof data.settings.darkMode === "boolean" && !data.settings.theme) {
+    data.settings.theme = data.settings.darkMode ? "dark" : "light";
+    updated = true;
+  }
+
+  if (
+    typeof data.settings.notificationsEnabled === "boolean" &&
+    typeof data.settings.remindersEnabled !== "boolean"
+  ) {
+    data.settings.remindersEnabled = data.settings.notificationsEnabled;
+    updated = true;
+  }
+
+  if (!Number.isFinite(data.settings.weeklyOffDays)) {
+    data.settings.weeklyOffDays = 0;
+    updated = true;
+  }
+
+  if (!Array.isArray(data.settings.offDaysPattern)) {
+    data.settings.offDaysPattern = getOffDaysPattern(
+      data.settings.weeklyOffDays
+    );
+    updated = true;
+  }
+
+  const expectedPattern = getOffDaysPattern(data.settings.weeklyOffDays);
+  const currentPattern = data.settings.offDaysPattern;
+  if (
+    currentPattern.length !== expectedPattern.length ||
+    currentPattern.some((day, index) => day !== expectedPattern[index])
+  ) {
+    data.settings.offDaysPattern = expectedPattern;
+    updated = true;
+  }
+
+  if (
+    !data.settings.activeChallenges ||
+    typeof data.settings.activeChallenges !== "object"
+  ) {
+    data.settings.activeChallenges = structuredClone(
+      defaultUserData.settings.activeChallenges
+    );
+    updated = true;
+  } else {
+    CHALLENGE_IDS.forEach((challengeId) => {
+      if (typeof data.settings.activeChallenges[challengeId] !== "boolean") {
+        data.settings.activeChallenges[challengeId] = true;
+        updated = true;
+      }
+    });
+  }
+
+  if (!["light", "dark", "auto"].includes(data.settings.theme)) {
+    data.settings.theme = "auto";
+    updated = true;
+  }
+
+  if (typeof data.settings.soundEnabled !== "boolean") {
+    data.settings.soundEnabled = true;
+    updated = true;
+  }
+
+  if (typeof data.settings.vibrationEnabled !== "boolean") {
+    data.settings.vibrationEnabled = true;
+    updated = true;
+  }
+
+  if (typeof data.settings.remindersEnabled !== "boolean") {
+    data.settings.remindersEnabled = false;
+    updated = true;
+  }
+
+  if (typeof data.settings.reminderDailyTime !== "string") {
+    data.settings.reminderDailyTime = "19:00";
+    updated = true;
+  }
+
+  if (typeof data.settings.reminderXpGoalTime !== "string") {
+    data.settings.reminderXpGoalTime = "21:00";
+    updated = true;
+  }
+
+  return updated;
+}
 
 function ensureLeagueDefaults(data) {
   let updated = false;
@@ -614,6 +771,7 @@ function loadUserData() {
     ensureDailyXpGoalBonusDateDefaults(data);
   const leagueUpdated = ensureLeagueDefaults(data);
   const leagueHistoryUpdated = ensureLeagueHistoryDefaults(data);
+  const settingsUpdated = ensureSettingsDefaults(data);
   let achievementsUpdated = false;
 
   if (!data.achievements || typeof data.achievements !== "object") {
@@ -637,7 +795,8 @@ function loadUserData() {
     achievementsUpdated ||
     dailyXpGoalBonusDateUpdated ||
     leagueUpdated ||
-    leagueHistoryUpdated
+    leagueHistoryUpdated ||
+    settingsUpdated
   ) {
     saveUserData(data);
   }
@@ -686,7 +845,24 @@ function updateStreak() {
     if (userData.lastTrainingDate === yesterday.toDateString()) {
       userData.streakGlobal += 1;
     } else {
-      userData.streakGlobal = 1;
+      const lastTrainingDate = new Date(userData.lastTrainingDate);
+      const cursor = new Date(lastTrainingDate);
+      cursor.setDate(cursor.getDate() + 1);
+      let onlyOffDays = true;
+
+      while (cursor.toDateString() !== today) {
+        if (!isDateOffDay(cursor, userData.settings)) {
+          onlyOffDays = false;
+          break;
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      if (onlyOffDays) {
+        userData.streakGlobal += 1;
+      } else {
+        userData.streakGlobal = 1;
+      }
     }
   } else {
     userData.streakGlobal = 1;
@@ -746,6 +922,10 @@ window.getWeekStartISO = getWeekStartISO;
 window.ensureLeagueWeekUpToDate = ensureLeagueWeekUpToDate;
 window.addWeekXp = addWeekXp;
 window.buildLeagueLeaderboard = buildLeagueLeaderboard;
+window.getActiveChallengeIds = getActiveChallengeIds;
+window.isChallengeActive = isChallengeActive;
+window.isTodayOffDay = isTodayOffDay;
+window.getOffDaysPattern = getOffDaysPattern;
 
 function getMetricValue(pathString) {
   if (!pathString) return 0;

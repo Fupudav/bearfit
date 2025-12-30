@@ -87,8 +87,247 @@ function renderHome() {
   updateObjectivesUI();
 }
 
+let reminderTimeouts = {
+  daily: null,
+  xpGoal: null,
+};
+
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.remove("hidden");
+  toast.classList.add("visible");
+
+  if (toast.dataset.timeoutId) {
+    clearTimeout(Number(toast.dataset.timeoutId));
+  }
+
+  const timeoutId = window.setTimeout(() => {
+    toast.classList.remove("visible");
+    toast.classList.add("hidden");
+  }, 4000);
+
+  toast.dataset.timeoutId = String(timeoutId);
+}
+
+function getDelayUntil(timeString) {
+  if (!timeString || typeof timeString !== "string") return null;
+  const [hours, minutes] = timeString.split(":").map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  const now = new Date();
+  const target = new Date(now);
+  target.setHours(hours, minutes, 0, 0);
+  if (target <= now) {
+    target.setDate(target.getDate() + 1);
+  }
+  return target.getTime() - now.getTime();
+}
+
+function scheduleReminderTimeout(key, timeString, onTrigger) {
+  const delay = getDelayUntil(timeString);
+  if (delay === null) return;
+  reminderTimeouts[key] = window.setTimeout(() => {
+    if (!userData.settings?.remindersEnabled) return;
+    onTrigger();
+    const nextTime =
+      key === "daily"
+        ? userData.settings?.reminderDailyTime
+        : userData.settings?.reminderXpGoalTime;
+    scheduleReminderTimeout(key, nextTime, onTrigger);
+  }, delay);
+}
+
+function scheduleReminders() {
+  Object.values(reminderTimeouts).forEach((timeoutId) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  });
+  reminderTimeouts = { daily: null, xpGoal: null };
+
+  if (!userData.settings?.remindersEnabled) return;
+
+  scheduleReminderTimeout("daily", userData.settings.reminderDailyTime, () => {
+    const today = new Date().toDateString();
+    if (userData.lastTrainingDate !== today) {
+      showToast("Fais ta séance");
+    }
+  });
+
+  scheduleReminderTimeout("xpGoal", userData.settings.reminderXpGoalTime, () => {
+    const todayXp = userData.xpToday?.value ?? 0;
+    const goal = userData.settings?.dailyXpGoal ?? 0;
+    if (todayXp < goal) {
+      showToast("Objectif XP pas atteint");
+    }
+  });
+}
+
+function applyThemeFromSettings() {
+  const root = document.documentElement;
+  const theme = userData.settings?.theme ?? "auto";
+  let resolved = theme;
+
+  if (theme === "auto") {
+    const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)")
+      ?.matches;
+    resolved = prefersDark ? "dark" : "light";
+  }
+
+  root.classList.remove("theme-dark", "theme-light");
+  root.classList.add(`theme-${resolved}`);
+}
+
 // RÉGLAGES
 function updateSettingsUI() {
+  const settings = userData.settings || {};
+
+  const dailyXpInput = document.getElementById("settings-daily-xp");
+  if (dailyXpInput) {
+    dailyXpInput.value = settings.dailyXpGoal ?? 0;
+    if (!dailyXpInput.dataset.bound) {
+      dailyXpInput.addEventListener("change", (event) => {
+        const value = Math.max(0, Number(event.target.value) || 0);
+        userData.settings.dailyXpGoal = value;
+        saveUserData(userData);
+        if (window.refreshUI) {
+          window.refreshUI();
+        }
+      });
+      dailyXpInput.dataset.bound = "true";
+    }
+  }
+
+  const weeklyOffDaysSelect = document.getElementById("settings-weekly-offdays");
+  if (weeklyOffDaysSelect) {
+    weeklyOffDaysSelect.value = String(settings.weeklyOffDays ?? 0);
+    if (!weeklyOffDaysSelect.dataset.bound) {
+      weeklyOffDaysSelect.addEventListener("change", (event) => {
+        const value = Number(event.target.value);
+        userData.settings.weeklyOffDays = value;
+        if (typeof window.getOffDaysPattern === "function") {
+          userData.settings.offDaysPattern = window.getOffDaysPattern(value);
+        } else {
+          const fallbackPatterns = {
+            0: [],
+            1: ["sun"],
+            2: ["sat", "sun"],
+            3: ["wed", "sat", "sun"],
+          };
+          userData.settings.offDaysPattern = fallbackPatterns[value] || [];
+        }
+        saveUserData(userData);
+        if (window.refreshUI) {
+          window.refreshUI();
+        }
+      });
+      weeklyOffDaysSelect.dataset.bound = "true";
+    }
+  }
+
+  document
+    .querySelectorAll("[data-challenge-toggle]")
+    .forEach((checkbox) => {
+      const challengeId = checkbox.dataset.challengeToggle;
+      checkbox.checked = settings.activeChallenges?.[challengeId] !== false;
+      if (!checkbox.dataset.bound) {
+        checkbox.addEventListener("change", (event) => {
+          userData.settings.activeChallenges[challengeId] = event.target.checked;
+          saveUserData(userData);
+          if (window.refreshUI) {
+            window.refreshUI();
+          }
+        });
+        checkbox.dataset.bound = "true";
+      }
+    });
+
+  document.querySelectorAll("[data-theme-option]").forEach((radio) => {
+    const themeValue = radio.dataset.themeOption;
+    radio.checked = settings.theme === themeValue;
+    if (!radio.dataset.bound) {
+      radio.addEventListener("change", (event) => {
+        if (!event.target.checked) return;
+        userData.settings.theme = themeValue;
+        saveUserData(userData);
+        applyThemeFromSettings();
+      });
+      radio.dataset.bound = "true";
+    }
+  });
+
+  const soundToggle = document.getElementById("settings-sound-enabled");
+  if (soundToggle) {
+    soundToggle.checked = settings.soundEnabled !== false;
+    if (!soundToggle.dataset.bound) {
+      soundToggle.addEventListener("change", (event) => {
+        userData.settings.soundEnabled = event.target.checked;
+        saveUserData(userData);
+      });
+      soundToggle.dataset.bound = "true";
+    }
+  }
+
+  const vibrationToggle = document.getElementById(
+    "settings-vibration-enabled"
+  );
+  if (vibrationToggle) {
+    vibrationToggle.checked = settings.vibrationEnabled !== false;
+    if (!vibrationToggle.dataset.bound) {
+      vibrationToggle.addEventListener("change", (event) => {
+        userData.settings.vibrationEnabled = event.target.checked;
+        saveUserData(userData);
+      });
+      vibrationToggle.dataset.bound = "true";
+    }
+  }
+
+  const remindersToggle = document.getElementById("settings-reminders-enabled");
+  if (remindersToggle) {
+    remindersToggle.checked = settings.remindersEnabled === true;
+    if (!remindersToggle.dataset.bound) {
+      remindersToggle.addEventListener("change", (event) => {
+        userData.settings.remindersEnabled = event.target.checked;
+        saveUserData(userData);
+        scheduleReminders();
+      });
+      remindersToggle.dataset.bound = "true";
+    }
+  }
+
+  const reminderDailyInput = document.getElementById(
+    "settings-reminder-daily-time"
+  );
+  if (reminderDailyInput) {
+    reminderDailyInput.value = settings.reminderDailyTime ?? "19:00";
+    reminderDailyInput.disabled = !settings.remindersEnabled;
+    if (!reminderDailyInput.dataset.bound) {
+      reminderDailyInput.addEventListener("change", (event) => {
+        userData.settings.reminderDailyTime = event.target.value;
+        saveUserData(userData);
+        scheduleReminders();
+      });
+      reminderDailyInput.dataset.bound = "true";
+    }
+  }
+
+  const reminderXpInput = document.getElementById(
+    "settings-reminder-xp-time"
+  );
+  if (reminderXpInput) {
+    reminderXpInput.value = settings.reminderXpGoalTime ?? "21:00";
+    reminderXpInput.disabled = !settings.remindersEnabled;
+    if (!reminderXpInput.dataset.bound) {
+      reminderXpInput.addEventListener("change", (event) => {
+        userData.settings.reminderXpGoalTime = event.target.value;
+        saveUserData(userData);
+        scheduleReminders();
+      });
+      reminderXpInput.dataset.bound = "true";
+    }
+  }
+
   const settingsMap = [
     { inputId: "settings-rest-pushups", valueId: "settings-rest-pushups-value", key: "restTimePompes" },
     { inputId: "settings-rest-plank", valueId: "settings-rest-plank-value", key: "restTimeGainage" },
@@ -145,9 +384,15 @@ function refreshUI() {
   renderHome();
   updateSettingsUI();
   updateProfileUI();
+  applyThemeFromSettings();
+  scheduleReminders();
 
   if (window.renderChallenges) {
     window.renderChallenges();
+  }
+
+  if (window.updateFreeExerciseOptions) {
+    window.updateFreeExerciseOptions();
   }
 
   if (typeof renderStats === "function") {
@@ -169,6 +414,14 @@ refreshUI();
 // EXPORT DEBUG
 window.refreshUI = refreshUI;
 window.renderHome = renderHome;
+
+window
+  .matchMedia("(prefers-color-scheme: dark)")
+  ?.addEventListener("change", () => {
+    if (userData.settings?.theme === "auto") {
+      applyThemeFromSettings();
+    }
+  });
 
 document
   .getElementById("home-reroll-secondary")
