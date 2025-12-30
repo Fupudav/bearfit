@@ -49,6 +49,15 @@ function renderStats() {
     maxTriceps.textContent = userData.stats.maxTriceps;
   }
 
+  const weightTriceps = document.getElementById("stats-weight-triceps");
+  if (weightTriceps) {
+    const info =
+      typeof window.getCurrentChallengeWeightInfo === "function"
+        ? window.getCurrentChallengeWeightInfo("triceps")
+        : null;
+    weightTriceps.textContent = info?.label || "–";
+  }
+
   const totalDeveloppe = document.getElementById("stats-total-developpe");
   if (totalDeveloppe) {
     totalDeveloppe.textContent = userData.stats.totalDeveloppe;
@@ -57,6 +66,15 @@ function renderStats() {
   const maxDeveloppe = document.getElementById("stats-max-developpe");
   if (maxDeveloppe) {
     maxDeveloppe.textContent = userData.stats.maxDeveloppe;
+  }
+
+  const weightDeveloppe = document.getElementById("stats-weight-developpe");
+  if (weightDeveloppe) {
+    const info =
+      typeof window.getCurrentChallengeWeightInfo === "function"
+        ? window.getCurrentChallengeWeightInfo("bench")
+        : null;
+    weightDeveloppe.textContent = info?.label || "–";
   }
 }
 

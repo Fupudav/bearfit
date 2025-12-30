@@ -157,6 +157,68 @@ function ensureDailyCountersDefaults(data) {
   return updated;
 }
 
+function formatWeightValue(value) {
+  if (!Number.isFinite(value)) return "";
+  if (Number.isInteger(value)) return `${value}`;
+  return `${Math.round(value * 10) / 10}`;
+}
+
+function formatChallengeWeightLabel(challenge, weightValue) {
+  const unit = challenge.weightUnit || "kg";
+  const perDumbbell = weightValue;
+  const totalMultiplier = challenge.weightTotalMultiplier || 1;
+  const total = perDumbbell * totalMultiplier;
+
+  const perLabel = `${formatWeightValue(perDumbbell)} ${unit}`;
+  const totalLabel = `${formatWeightValue(total)} ${unit}`;
+
+  switch (challenge.weightDisplay) {
+    case "perDumbbellPlusTotal":
+      return `${perLabel} / haltère (${totalLabel} total)`;
+    case "perDumbbell":
+      return `${perLabel} / haltère`;
+    case "total":
+      return `${totalLabel} total`;
+    default:
+      return perLabel;
+  }
+}
+
+function getChallengeWeightInfo(challengeId, level, day) {
+  const challenge = challengePrograms[challengeId];
+  if (!challenge || !challenge.hasWeight || !challenge.weightPlan) return null;
+
+  const plan = challenge.weightPlan[level];
+  if (!plan) return null;
+
+  const weekIndex = Math.max(1, Math.min(4, Math.ceil(day / 7)));
+  const weekKey = `week${weekIndex}`;
+  let weightValue = plan[weekKey];
+  if (!Number.isFinite(weightValue)) return null;
+
+  if (challenge.deloadDays?.includes(day)) {
+    const delta = Number.isFinite(plan.deloadDelta) ? plan.deloadDelta : 0;
+    weightValue += delta;
+  }
+
+  const label = formatChallengeWeightLabel(challenge, weightValue);
+
+  return {
+    value: weightValue,
+    unit: challenge.weightUnit || "kg",
+    label,
+  };
+}
+
+function getCurrentChallengeWeightInfo(challengeId) {
+  const progress = userData.challenges?.[challengeId];
+  if (!progress) return null;
+  return getChallengeWeightInfo(challengeId, progress.level, progress.day);
+}
+
+window.getChallengeWeightInfo = getChallengeWeightInfo;
+window.getCurrentChallengeWeightInfo = getCurrentChallengeWeightInfo;
+
 function clampTarget(expected, minimum) {
   const rawTarget = Math.round(expected * 0.7);
   return Math.min(expected, Math.max(minimum, rawTarget));
@@ -510,13 +572,16 @@ function getTodayChallengeProgram(challengeId) {
   const dayProgram = challenge.levels[level]?.days[day];
   if (!dayProgram) return null;
 
+  const weightInfo = getChallengeWeightInfo(challengeId, level, day);
+
   return {
     challengeId,
     name: challenge.name,
     type: challenge.type,
     level,
     day,
-    series: dayProgram
+    series: dayProgram,
+    weightInfo
   };
 }
 
