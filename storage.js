@@ -166,13 +166,18 @@ function completeChallengeDay(challengeId) {
   const progress = userData.challenges[challengeId];
   const challenge = challengePrograms[challengeId];
 
-  if (!progress || !challenge) return;
+  if (!progress || !challenge) return false;
+
+  const todayKey = new Date().toDateString();
+  if (progress.lastCompletedDate === todayKey) {
+    return false;
+  }
 
   const currentLevel = progress.level;
   const currentDay = progress.day;
 
   const currentLevelData = challenge.levels[currentLevel];
-  if (!currentLevelData) return;
+  if (!currentLevelData) return false;
 
   const daysInLevel = Object.keys(currentLevelData.days).length;
 
@@ -189,9 +194,10 @@ function completeChallengeDay(challengeId) {
     }
   }
 
-  progress.lastCompletedDate = new Date().toDateString();
+  progress.lastCompletedDate = todayKey;
 
   saveUserData(userData);
+  return true;
 }
 
 // Export
