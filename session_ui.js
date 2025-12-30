@@ -3,6 +3,7 @@ let currentSerieIndex = 0;
 let currentMode = "solo";
 let currentStepIndex = 0;
 let combinedSession = null;
+let sessionFinalized = false;
 
 function startSession(session) {
   if (!session) {
@@ -42,6 +43,7 @@ function startCombinedSession(session) {
   currentStepIndex = 0;
   currentSession = null;
   currentSerieIndex = 0;
+  sessionFinalized = false;
 
   const btn = document.getElementById("session-complete-btn");
   btn.style.display = "block";
@@ -108,7 +110,7 @@ document
         return;
       }
 
-      endCombinedSessionPreview();
+      endCombinedSession();
       return;
     }
 
@@ -147,16 +149,119 @@ document
     showScreen("challenges");
   });
 
-function endCombinedSessionPreview() {
+function computeSessionXpFromSeries(type, series, level) {
+  if (!Array.isArray(series) || !series.length) return 0;
+
+  let baseXp = 0;
+  if (type === "reps") {
+    baseXp = series.reduce((sum, reps) => sum + reps, 0);
+  } else if (type === "time") {
+    baseXp = series.reduce((sum, seconds) => sum + seconds, 0) / 10;
+  }
+
+  const multiplier = 1 + 0.1 * (level - 1);
+  return Math.round(baseXp * multiplier);
+}
+
+function applySessionStatsFallback(session) {
+  if (!session || !session.challengeId) return;
+  const volume = session.series.reduce((sum, value) => sum + value, 0);
+
+  switch (session.challengeId) {
+    case "pushups":
+      userData.stats.totalPompes += volume;
+      userData.stats.maxPompes = Math.max(userData.stats.maxPompes, volume);
+      break;
+    case "plank":
+      userData.stats.totalGainage += volume;
+      userData.stats.maxGainage = Math.max(userData.stats.maxGainage, volume);
+      break;
+    case "abs":
+      userData.stats.totalAbdos += volume;
+      userData.stats.maxAbdos = Math.max(userData.stats.maxAbdos, volume);
+      break;
+    case "triceps":
+      userData.stats.totalTriceps += volume;
+      userData.stats.maxTriceps = Math.max(userData.stats.maxTriceps, volume);
+      break;
+    case "bench":
+      userData.stats.totalDeveloppe += volume;
+      userData.stats.maxDeveloppe = Math.max(
+        userData.stats.maxDeveloppe,
+        volume
+      );
+      break;
+    default:
+      break;
+  }
+}
+
+function endCombinedSession() {
+  if (sessionFinalized) return;
+  sessionFinalized = true;
+
+  if (!combinedSession?.steps?.length) {
+    currentMode = "solo";
+    combinedSession = null;
+    currentStepIndex = 0;
+    showScreen("home");
+    return;
+  }
+
+  const challengeIds = [
+    ...new Set(combinedSession.steps.map((step) => step.challengeId)),
+  ];
+
+  let totalXp = 0;
+  let validCount = 0;
+
+  challengeIds.forEach((challengeId) => {
+    const session = getTodayChallengeProgram(challengeId);
+    if (!session) return;
+
+    const completed = completeChallengeDay(challengeId);
+    if (!completed) return;
+
+    const xp = window.calculateSessionXp
+      ? window.calculateSessionXp(session)
+      : computeSessionXpFromSeries(
+          session.type,
+          session.series,
+          session.level
+        );
+    totalXp += xp;
+    validCount += 1;
+
+    if (window.applySessionStats) {
+      window.applySessionStats(session);
+    } else {
+      applySessionStatsFallback(session);
+    }
+  });
+
+  if (validCount > 0) {
+    addXp(totalXp);
+    updateStreak();
+  }
+
+  saveUserData(userData);
+
   document.getElementById("session-step").textContent =
     "Séance combinée terminée 💪";
-  document.getElementById("session-progress-text").textContent = "";
-  document.getElementById("session-xp-preview").textContent = "";
+  document.getElementById("session-progress-text").textContent =
+    `Challenges validés: ${validCount}`;
+  document.getElementById(
+    "session-xp-preview"
+  ).textContent = `XP gagné: ${totalXp}`;
   document.getElementById("session-complete-btn").style.display = "none";
 
   currentMode = "solo";
   combinedSession = null;
   currentStepIndex = 0;
+
+  if (window.refreshUI) {
+    window.refreshUI();
+  }
 
   setTimeout(() => {
     showScreen("home");
