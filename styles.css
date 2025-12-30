@@ -10,6 +10,10 @@ body {
   color: #f5f5f5;
 }
 
+.hidden {
+  display: none !important;
+}
+
 /* HEADER */
 .app-header {
   padding: 12px 16px;
@@ -137,6 +141,37 @@ button.secondary {
 
 button:active {
   opacity: 0.8;
+}
+
+.card {
+  padding: 12px;
+  border-radius: 12px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  margin-bottom: 12px;
+}
+
+.leaderboard {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.leaderboard-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #222;
+}
+
+.leaderboard-row.is-user {
+  background: #2c3b2c;
+  color: #a7f3a7;
+  font-weight: 600;
 }
 
 .modal {

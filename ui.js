@@ -121,11 +121,30 @@ function updateSettingsUI() {
   });
 }
 
+// PROFIL
+function updateProfileUI() {
+  const nameEl = document.getElementById("profile-name");
+  if (nameEl) {
+    nameEl.textContent = userData.profile?.nickname ?? "Utilisateur";
+  }
+
+  const leagueEl = document.getElementById("profile-league");
+  if (leagueEl) {
+    leagueEl.textContent = userData.league?.currentLeague ?? 1;
+  }
+
+  const xpEl = document.getElementById("profile-xp");
+  if (xpEl) {
+    xpEl.textContent = userData.xp ?? 0;
+  }
+}
+
 // RAFRAÎCHISSEMENT GLOBAL UI
 function refreshUI() {
   updateHeaderUI();
   renderHome();
   updateSettingsUI();
+  updateProfileUI();
 
   if (window.renderChallenges) {
     window.renderChallenges();
@@ -133,6 +152,10 @@ function refreshUI() {
 
   if (typeof renderStats === "function") {
     renderStats();
+  }
+
+  if (typeof renderLeagues === "function") {
+    renderLeagues();
   }
 
   if (typeof renderSuccesses === "function") {

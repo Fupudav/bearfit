@@ -77,6 +77,7 @@ function renderSuccesses() {
     streak_challenge: "Streak par challenge",
     volume: "Volume",
     xp: "XP",
+    leagues: "Ligues",
     fun: "Fun",
     combined: "Séances combinées",
   };
@@ -85,6 +86,7 @@ function renderSuccesses() {
     "streak_challenge",
     "volume",
     "xp",
+    "leagues",
     "fun",
     "combined",
   ];

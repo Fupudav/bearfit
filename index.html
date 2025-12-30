@@ -92,6 +92,32 @@
         </div>
       </section>
 
+      <!-- Écran Ligues -->
+      <section id="leagues" class="screen">
+        <h2>Ligues</h2>
+
+        <div class="card">
+          <h3>Ligue actuelle</h3>
+          <p id="league-current-name">–</p>
+          <p id="league-current-desc">–</p>
+          <p>XP cette semaine : <span id="league-week-xp">0</span></p>
+          <p>Meilleure ligue : <span id="league-best">1</span></p>
+          <p>Fin dans : <span id="league-time-remaining">–</span></p>
+        </div>
+
+        <div class="card">
+          <h3>Classement hebdo</h3>
+          <ol id="league-leaderboard" class="leaderboard"></ol>
+        </div>
+
+        <div id="league-last-result" class="card hidden">
+          <h3>Résultat semaine précédente</h3>
+          <p id="league-last-status">–</p>
+          <p id="league-last-rank">–</p>
+          <p id="league-last-xp">–</p>
+        </div>
+      </section>
+
       <!-- Écran Séance libre -->
       <section id="free" class="screen">
         <h2>Séance libre</h2>
@@ -234,6 +260,7 @@
       <button data-screen="home" class="nav-btn active">Accueil</button>
       <button data-screen="challenges" class="nav-btn">Challenges</button>
       <button data-screen="stats" class="nav-btn">Stats</button>
+      <button data-screen="leagues" class="nav-btn">Ligues</button>
       <button data-screen="free" class="nav-btn">Séance libre</button>
       <button data-screen="settings" class="nav-btn">Réglages</button>
       <button data-screen="success" class="nav-btn">Succès</button>
@@ -249,6 +276,7 @@
   <script src="./navigation.js"></script>
   <script src="./ui.js"></script>
   <script src="./stats_ui.js"></script>
+  <script src="./league_ui.js"></script>
   <script src="./success_ui.js"></script>
   <script src="./combined_ui.js"></script>
   <script src="./session_ui.js"></script>
