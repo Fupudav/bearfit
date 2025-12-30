@@ -142,6 +142,9 @@ document
     } else {
       addXp(xp);
       updateStreak();
+      if (window.updateChallengeStreak) {
+        window.updateChallengeStreak(currentSession.challengeId);
+      }
       if (window.applySessionStats) {
         window.applySessionStats(currentSession);
       }
@@ -263,6 +266,10 @@ function endCombinedSession() {
     validCount += 1;
     completedSessions.push(session);
 
+    if (window.updateChallengeStreak) {
+      window.updateChallengeStreak(challengeId);
+    }
+
     if (window.applySessionStats) {
       window.applySessionStats(session);
     } else {
@@ -287,8 +294,9 @@ function endCombinedSession() {
       window.evaluateObjectivesAndMaybeReward();
     }
 
-    if (userData.stats) {
-      userData.stats.combinedSessionsTotal += 1;
+    if (userData.stats && challengeIds.length > 1) {
+      userData.stats.combinedSessionsCount =
+        (userData.stats.combinedSessionsCount || 0) + 1;
     }
     saveUserData(userData);
 
@@ -363,6 +371,9 @@ function endSession() {
   const xpGained = 20; // temporaire, on affinera plus tard
   addXp(xpGained);
   updateStreak();
+  if (window.updateChallengeStreak && currentSession?.challengeId) {
+    window.updateChallengeStreak(currentSession.challengeId);
+  }
 
   console.log("XP gagnée :", xpGained);
 }

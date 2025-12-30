@@ -42,7 +42,8 @@ const defaultUserData = {
     totalAbdos: 0,
     totalTriceps: 0,
     totalDeveloppe: 0,
-    combinedSessionsTotal: 0,
+    combinedSessionsCount: 0,
+    totalSessions: 0,
 
     maxPompes: 0,
     maxGainage: 0,
@@ -52,7 +53,24 @@ const defaultUserData = {
   },
 
   achievements: {},
+  unlockedAchievements: {},
   achievementEvents: [],
+
+  challengeStreaks: {
+    pushups: 0,
+    plank: 0,
+    abs: 0,
+    triceps: 0,
+    bench: 0,
+  },
+
+  lastChallengeTrainingDate: {
+    pushups: null,
+    plank: null,
+    abs: null,
+    triceps: null,
+    bench: null,
+  },
 
   challenges: {
     pushups: { level: 1, day: 1 },
@@ -82,6 +100,14 @@ function ensureStatsDefaults(data) {
     return true;
   }
 
+  if (
+    typeof data.stats.combinedSessionsCount !== "number" &&
+    typeof data.stats.combinedSessionsTotal === "number"
+  ) {
+    data.stats.combinedSessionsCount = data.stats.combinedSessionsTotal;
+    updated = true;
+  }
+
   Object.entries(defaultUserData.stats).forEach(([key, value]) => {
     if (typeof data.stats[key] !== "number") {
       data.stats[key] = value;
@@ -90,6 +116,60 @@ function ensureStatsDefaults(data) {
   });
 
   return updated;
+}
+
+function ensureChallengeStreakDefaults(data) {
+  let updated = false;
+
+  if (!data.challengeStreaks || typeof data.challengeStreaks !== "object") {
+    data.challengeStreaks = structuredClone(
+      defaultUserData.challengeStreaks
+    );
+    return true;
+  }
+
+  Object.entries(defaultUserData.challengeStreaks).forEach(([key, value]) => {
+    if (typeof data.challengeStreaks[key] !== "number") {
+      data.challengeStreaks[key] = value;
+      updated = true;
+    }
+  });
+
+  return updated;
+}
+
+function ensureLastChallengeTrainingDateDefaults(data) {
+  let updated = false;
+
+  if (
+    !data.lastChallengeTrainingDate ||
+    typeof data.lastChallengeTrainingDate !== "object"
+  ) {
+    data.lastChallengeTrainingDate = structuredClone(
+      defaultUserData.lastChallengeTrainingDate
+    );
+    return true;
+  }
+
+  Object.entries(defaultUserData.lastChallengeTrainingDate).forEach(
+    ([key, value]) => {
+      if (data.lastChallengeTrainingDate[key] === undefined) {
+        data.lastChallengeTrainingDate[key] = value;
+        updated = true;
+      }
+    }
+  );
+
+  return updated;
+}
+
+function ensureUnlockedAchievementsDefaults(data) {
+  if (!data.unlockedAchievements || typeof data.unlockedAchievements !== "object") {
+    data.unlockedAchievements = {};
+    return true;
+  }
+
+  return false;
 }
 
 function ensureXpTodayDefaults(data, today) {
@@ -405,6 +485,10 @@ function loadUserData() {
   const xpTodayUpdated = ensureXpTodayDefaults(data, today);
   const dailyObjectivesUpdated = ensureDailyObjectivesDefaults(data);
   const dailyCountersUpdated = ensureDailyCountersDefaults(data);
+  const challengeStreaksUpdated = ensureChallengeStreakDefaults(data);
+  const lastChallengeTrainingDateUpdated =
+    ensureLastChallengeTrainingDateDefaults(data);
+  const unlockedAchievementsUpdated = ensureUnlockedAchievementsDefaults(data);
   let achievementsUpdated = false;
 
   if (!data.achievements || typeof data.achievements !== "object") {
@@ -422,6 +506,9 @@ function loadUserData() {
     xpTodayUpdated ||
     dailyObjectivesUpdated ||
     dailyCountersUpdated ||
+    challengeStreaksUpdated ||
+    lastChallengeTrainingDateUpdated ||
+    unlockedAchievementsUpdated ||
     achievementsUpdated
   ) {
     saveUserData(data);
@@ -479,10 +566,46 @@ function updateStreak() {
   saveUserData(userData);
 }
 
+function updateChallengeStreak(challengeId) {
+  if (!challengeId) return;
+  const today = new Date().toDateString();
+
+  if (!userData.challengeStreaks) {
+    userData.challengeStreaks = structuredClone(
+      defaultUserData.challengeStreaks
+    );
+  }
+
+  if (!userData.lastChallengeTrainingDate) {
+    userData.lastChallengeTrainingDate = structuredClone(
+      defaultUserData.lastChallengeTrainingDate
+    );
+  }
+
+  if (userData.lastChallengeTrainingDate[challengeId] === today) {
+    return;
+  }
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = yesterday.toDateString();
+
+  if (userData.lastChallengeTrainingDate[challengeId] === yesterdayKey) {
+    userData.challengeStreaks[challengeId] =
+      (userData.challengeStreaks[challengeId] || 0) + 1;
+  } else {
+    userData.challengeStreaks[challengeId] = 1;
+  }
+
+  userData.lastChallengeTrainingDate[challengeId] = today;
+  saveUserData(userData);
+}
+
 // EXPORT SI BESOIN
 window.userData = userData;
 window.addXp = addXp;
 window.updateStreak = updateStreak;
+window.updateChallengeStreak = updateChallengeStreak;
 window.ensureDailyObjectives = ensureDailyObjectives;
 window.ensureDailyCounters = ensureDailyCounters;
 window.evaluateObjectivesAndMaybeReward = evaluateObjectivesAndMaybeReward;
@@ -492,6 +615,27 @@ window.resetUserData = resetUserData;
 
 function getMetricValue(pathString) {
   if (!pathString) return 0;
+
+  if (pathString.startsWith("streak:")) {
+    const challengeId = pathString.split(":")[1];
+    if (!challengeId) return 0;
+    return userData.challengeStreaks?.[challengeId] ?? 0;
+  }
+
+  switch (pathString) {
+    case "streakGlobal":
+      return userData.streakGlobal ?? 0;
+    case "xpTotal":
+      return userData.xp ?? 0;
+    case "totalPompes":
+      return userData.stats?.totalPompes ?? 0;
+    case "combinedSessions":
+      return userData.stats?.combinedSessionsCount ?? 0;
+    case "totalSessions":
+      return userData.stats?.totalSessions ?? 0;
+    default:
+      break;
+  }
 
   if (pathString.includes(".")) {
     return pathString.split(".").reduce((acc, key) => {
@@ -513,8 +657,16 @@ function evaluateAchievements() {
     userData.achievements = {};
   }
 
+  if (!userData.unlockedAchievements || typeof userData.unlockedAchievements !== "object") {
+    userData.unlockedAchievements = {};
+  }
+
   if (!Array.isArray(userData.achievementEvents)) {
     userData.achievementEvents = [];
+  }
+
+  if (!Array.isArray(window.__recentUnlocks)) {
+    window.__recentUnlocks = [];
   }
 
   window.ACHIEVEMENTS.forEach((def) => {
@@ -523,8 +675,18 @@ function evaluateAchievements() {
       userData.achievements[def.id] || {
         levelIndex: -1,
         currentValue: value,
-        claimedLevels: [false, false, false, false, false],
+        claimedLevels: Array(def.thresholds.length).fill(false),
       };
+
+    if (!Array.isArray(state.claimedLevels)) {
+      state.claimedLevels = Array(def.thresholds.length).fill(false);
+    }
+    if (state.claimedLevels.length < def.thresholds.length) {
+      state.claimedLevels = [
+        ...state.claimedLevels,
+        ...Array(def.thresholds.length - state.claimedLevels.length).fill(false),
+      ];
+    }
 
     const newLevelIndex = def.thresholds.reduce((acc, threshold, index) => {
       if (value >= threshold) return index;
@@ -541,6 +703,13 @@ function evaluateAchievements() {
         });
       }
       state.levelIndex = newLevelIndex;
+      userData.unlockedAchievements[def.id] = {
+        levelIndex: newLevelIndex,
+        tier: def.tiers?.[newLevelIndex] ?? null,
+        value,
+        ts: Date.now(),
+      };
+      window.__recentUnlocks.push(def.id);
     }
 
     state.currentValue = value;
@@ -555,6 +724,7 @@ function evaluateAchievements() {
 }
 
 window.evaluateAchievements = evaluateAchievements;
+window.getMetricValue = getMetricValue;
 
 // RECUPERER SEANCE DU JOUR
 function getTodayChallengeProgram(challengeId) {
@@ -824,6 +994,9 @@ function recordDailySessionCompletion(isCombined = false) {
   counters.sessionsCompleted += 1;
   if (isCombined) {
     counters.combinedSessions += 1;
+  }
+  if (userData.stats) {
+    userData.stats.totalSessions = (userData.stats.totalSessions || 0) + 1;
   }
   saveUserData(userData);
 }
