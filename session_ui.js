@@ -129,20 +129,27 @@ document
     console.log("XP gagné :", xp);
     console.log("Challenge validé :", currentSession.challengeId);
 
-    addXp(xp);
-    updateStreak();
-    completeChallengeDay(currentSession.challengeId);
-    if (window.applySessionStats) {
-      window.applySessionStats(currentSession);
-    }
-    if (window.recordDailySessionCompletion) {
-      window.recordDailySessionCompletion();
-    }
-    if (window.recordDailySessionVolume) {
-      window.recordDailySessionVolume(currentSession);
-    }
-    if (window.evaluateObjectivesAndMaybeReward) {
-      window.evaluateObjectivesAndMaybeReward();
+    const ok = completeChallengeDay(currentSession.challengeId);
+    if (!ok) {
+      console.warn(
+        "Challenge déjà validé aujourd’hui, pas d’avancement:",
+        currentSession.challengeId
+      );
+    } else {
+      addXp(xp);
+      updateStreak();
+      if (window.applySessionStats) {
+        window.applySessionStats(currentSession);
+      }
+      if (window.recordDailySessionCompletion) {
+        window.recordDailySessionCompletion();
+      }
+      if (window.recordDailySessionVolume) {
+        window.recordDailySessionVolume(currentSession);
+      }
+      if (window.evaluateObjectivesAndMaybeReward) {
+        window.evaluateObjectivesAndMaybeReward();
+      }
     }
 
     saveUserData(userData); // 🔒 sécurité
@@ -229,8 +236,14 @@ function endCombinedSession() {
     const session = getTodayChallengeProgram(challengeId);
     if (!session) return;
 
-    const completed = completeChallengeDay(challengeId);
-    if (!completed) return;
+    const ok = completeChallengeDay(challengeId);
+    if (!ok) {
+      console.warn(
+        "Challenge déjà validé aujourd’hui, pas d’avancement:",
+        challengeId
+      );
+      return;
+    }
 
     const xp = window.calculateSessionXp
       ? window.calculateSessionXp(session)
@@ -306,7 +319,6 @@ function endSession() {
   const xpGained = 20; // temporaire, on affinera plus tard
   addXp(xpGained);
   updateStreak();
-  completeChallengeDay(currentSession.challengeId);
 
   console.log("XP gagnée :", xpGained);
 }
