@@ -7,28 +7,17 @@ function renderCombinedList() {
   if (!list) return;
 
   list.innerHTML = "";
-  const todayKey = new Date().toDateString();
 
   Object.values(challengePrograms).forEach((challenge) => {
-    const progress = userData.challenges[challenge.id];
-    const lastCompletedDate = progress?.lastCompletedDate;
-    const isDoneToday = lastCompletedDate === todayKey;
-
     const label = document.createElement("label");
     label.className = "combined-option";
-    if (isDoneToday) {
-      label.classList.add("disabled");
-    }
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.value = challenge.id;
-    checkbox.disabled = isDoneToday;
 
     const text = document.createElement("span");
-    text.textContent = isDoneToday
-      ? `${buildChallengeLabel(challenge.name)} (déjà fait aujourd'hui)`
-      : buildChallengeLabel(challenge.name);
+    text.textContent = buildChallengeLabel(challenge.name);
 
     label.appendChild(checkbox);
     label.appendChild(text);
