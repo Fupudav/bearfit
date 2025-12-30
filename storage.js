@@ -354,17 +354,7 @@ function completeChallengeDay(challengeId) {
   const challenge = challengePrograms[challengeId];
 
   if (!progress || !challenge) return false;
-
   const todayKey = new Date().toDateString();
-  if (progress.lastCompletedDate === todayKey) {
-    console.warn(
-      "completeChallengeDay blocked (already completed today)",
-      challengeId,
-      progress.lastCompletedDate,
-      todayKey
-    );
-    return false;
-  }
 
   const currentLevel = progress.level;
   const currentDay = progress.day;
