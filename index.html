@@ -33,6 +33,8 @@
           <p id="home-main-objective">–</p>
           <p id="home-secondary-objective">–</p>
         </div>
+
+        <button id="btn-combined-session">Séance combinée</button>
       </section>
 
       <!-- Écran Challenges -->
@@ -152,6 +154,17 @@
 
     </main>
 
+    <div id="combined-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Choisir les challenges</h3>
+        <div id="combined-list"></div>
+        <div class="modal-actions">
+          <button id="combined-start-btn">Lancer la séance</button>
+          <button id="combined-cancel-btn" class="secondary">Annuler</button>
+        </div>
+      </div>
+    </div>
+
     <!-- NAVIGATION BASSE -->
     <nav class="bottom-nav">
       <button data-screen="home" class="nav-btn active">Accueil</button>
@@ -170,6 +183,7 @@
   <script src="./navigation.js"></script>
   <script src="./ui.js"></script>
   <script src="./stats_ui.js"></script>
+  <script src="./combined_ui.js"></script>
   <script src="./session_ui.js"></script>
 </body>
 
