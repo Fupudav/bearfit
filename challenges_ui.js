@@ -14,6 +14,8 @@ function renderChallenges() {
       typeof window.getChallengeWeightInfo === "function"
         ? window.getChallengeWeightInfo(challenge.id, level, day)
         : null;
+    const streakValue = userData.challengeStreaks?.[challenge.id] ?? 0;
+
     const tile = document.createElement("div");
     tile.className = "challenge-tile";
 
@@ -21,24 +23,25 @@ function renderChallenges() {
       <h3>${challenge.name}</h3>
       <p>Type : ${challenge.type === "reps" ? "Répétitions" : "Temps"}</p>
       <p>Niveau ${level} – Jour ${day}</p>
+      <p class="challenge-streak">🔥 ${streakValue}j</p>
       ${weightInfo ? `<p>Poids : ${weightInfo.label}</p>` : ""}
     `;
 
     tile.addEventListener("click", () => {
-        const session = getTodayChallengeProgram(challenge.id);
-        if (!session) {
-          alert("Ce challenge n'a pas de séance disponible pour aujourd'hui.");
-          return;
-        }
+      const session = getTodayChallengeProgram(challenge.id);
+      if (!session) {
+        alert("Ce challenge n'a pas de séance disponible pour aujourd'hui.");
+        return;
+      }
 
-        startSession(session);
-        console.log("Séance du jour :", session);
+      startSession(session);
+      console.log("Séance du jour :", session);
 
-        // Stockage temporaire de la séance active
-        window.currentSession = session;
+      // Stockage temporaire de la séance active
+      window.currentSession = session;
 
-        // Passage à l'écran séance
-        showScreen("session");
+      // Passage à l'écran séance
+      showScreen("session");
     });
 
     container.appendChild(tile);

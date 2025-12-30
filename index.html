@@ -79,6 +79,7 @@
           <h3>Triceps haltères</h3>
           <p>Total : <span id="stats-total-triceps">0</span></p>
           <p>Record séance : <span id="stats-max-triceps">0</span></p>
+          <p>Record poids total : <span id="stats-max-triceps-weight">0</span> kg</p>
           <p>Poids actuel : <span id="stats-weight-triceps">–</span></p>
         </div>
 
@@ -86,6 +87,7 @@
           <h3>Développé couché</h3>
           <p>Total : <span id="stats-total-developpe">0</span></p>
           <p>Record séance : <span id="stats-max-developpe">0</span></p>
+          <p>Record poids total : <span id="stats-max-developpe-weight">0</span> kg</p>
           <p>Poids actuel : <span id="stats-weight-developpe">–</span></p>
         </div>
       </section>
@@ -115,7 +117,7 @@
           <input type="number" id="free-value" min="1" />
         </div>
         <p id="free-weight-row">Poids recommandé : <span id="free-weight"></span></p>
-        <button id="btn-free-start">Valider la séance libre</button>
+        <button id="btn-free-start">Démarrer la séance libre</button>
         <p id="free-result"></p>
       </section>
 
@@ -133,21 +135,74 @@
 
         <p id="session-subtitle"></p>
 
+        <p>Durée séance : <span id="session-global-timer">00:00</span></p>
+
         <div id="session-step">
           <!-- On affichera ici la série actuelle : ex. "Série 1 : 7 pompes" -->
         </div>
+
+        <div id="session-countdown"></div>
+        <div id="session-work-timer"></div>
+        <div id="session-rest"></div>
+        <button id="session-skip-rest-btn" class="secondary">Passer le repos</button>
 
         <button id="session-complete-btn">
           Série terminée
         </button>
 
+        <div id="session-free-actions" class="session-free-actions">
+          <button id="session-free-add" class="secondary">Ajouter une série</button>
+          <button id="session-free-end">Terminer la séance</button>
+        </div>
+
         <p id="session-progress-text">
           <!-- Ex : "Série 1 sur 3" -->
         </p>
 
+        <p id="session-next-step"></p>
+
         <p id="session-xp-preview">
           <!-- Ex : "XP prévu : 20" -->
         </p>
+
+        <div id="session-recap" class="recap hidden">
+          <h3 id="session-recap-title">Récap séance</h3>
+          <p>Durée totale : <span id="session-recap-duration">00:00</span></p>
+          <p>XP gagnés : <span id="session-recap-xp">0 XP</span></p>
+          <p id="session-recap-progress"></p>
+          <ul id="session-recap-records"></ul>
+          <button id="session-recap-home-btn">Retour à l’accueil</button>
+        </div>
+      </section>
+
+      <!-- Écran Réglages -->
+      <section id="settings" class="screen">
+        <h2>Réglages</h2>
+        <div class="settings-item">
+          <label for="settings-rest-pushups">Récup Pompes</label>
+          <input type="range" id="settings-rest-pushups" min="10" max="180" step="5" />
+          <span id="settings-rest-pushups-value">30s</span>
+        </div>
+        <div class="settings-item">
+          <label for="settings-rest-plank">Récup Gainage</label>
+          <input type="range" id="settings-rest-plank" min="10" max="180" step="5" />
+          <span id="settings-rest-plank-value">30s</span>
+        </div>
+        <div class="settings-item">
+          <label for="settings-rest-abs">Récup Abdos</label>
+          <input type="range" id="settings-rest-abs" min="10" max="180" step="5" />
+          <span id="settings-rest-abs-value">30s</span>
+        </div>
+        <div class="settings-item">
+          <label for="settings-rest-triceps">Récup Triceps</label>
+          <input type="range" id="settings-rest-triceps" min="10" max="180" step="5" />
+          <span id="settings-rest-triceps-value">45s</span>
+        </div>
+        <div class="settings-item">
+          <label for="settings-rest-bench">Récup Développé</label>
+          <input type="range" id="settings-rest-bench" min="10" max="180" step="5" />
+          <span id="settings-rest-bench-value">60s</span>
+        </div>
       </section>
 
       <!-- Écran Profil -->
@@ -180,6 +235,7 @@
       <button data-screen="challenges" class="nav-btn">Challenges</button>
       <button data-screen="stats" class="nav-btn">Stats</button>
       <button data-screen="free" class="nav-btn">Séance libre</button>
+      <button data-screen="settings" class="nav-btn">Réglages</button>
       <button data-screen="success" class="nav-btn">Succès</button>
       <button data-screen="profile" class="nav-btn">Profil</button>
     </nav>

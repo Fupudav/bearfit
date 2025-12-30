@@ -49,6 +49,11 @@ function renderStats() {
     maxTriceps.textContent = userData.stats.maxTriceps;
   }
 
+  const maxTricepsWeight = document.getElementById("stats-max-triceps-weight");
+  if (maxTricepsWeight) {
+    maxTricepsWeight.textContent = userData.stats.maxTricepsWeight ?? 0;
+  }
+
   const weightTriceps = document.getElementById("stats-weight-triceps");
   if (weightTriceps) {
     const info =
@@ -66,6 +71,13 @@ function renderStats() {
   const maxDeveloppe = document.getElementById("stats-max-developpe");
   if (maxDeveloppe) {
     maxDeveloppe.textContent = userData.stats.maxDeveloppe;
+  }
+
+  const maxDeveloppeWeight = document.getElementById(
+    "stats-max-developpe-weight"
+  );
+  if (maxDeveloppeWeight) {
+    maxDeveloppeWeight.textContent = userData.stats.maxDeveloppeWeight ?? 0;
   }
 
   const weightDeveloppe = document.getElementById("stats-weight-developpe");
