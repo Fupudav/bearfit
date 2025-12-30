@@ -4,39 +4,39 @@ const LEAGUE_DEFINITIONS = [
     description: "Découvre le rythme et installe tes bases.",
   },
   {
-    name: "Grizzly",
+    name: "Malais",
     description: "Tu gagnes en constance et en confiance.",
   },
   {
-    name: "Kodiak",
+    name: "Ours Lunettes",
     description: "Ta semaine devient plus régulière.",
   },
   {
-    name: "Polaris",
+    name: "Ours noir",
     description: "Un cap solide avec un bon volume d'XP.",
   },
   {
-    name: "Noyau",
+    name: "Noir Américain",
     description: "Le cœur du peloton avec une belle progression.",
   },
   {
-    name: "Aurore",
+    name: "Ours Brun",
     description: "Tu avances vite et sans relâche.",
   },
   {
-    name: "Arctique",
+    name: "Sibérien",
     description: "Un niveau exigeant, mais tu réponds présent.",
   },
   {
-    name: "Tempête",
+    name: "Kodiak",
     description: "Tu tiens le rythme des meilleurs.",
   },
   {
-    name: "Titan",
+    name: "Grizzly",
     description: "Tes semaines font la différence.",
   },
   {
-    name: "Légendaire",
+    name: "Polaire",
     description: "L'élite des ours, rien ne t'arrête.",
   },
 ];
