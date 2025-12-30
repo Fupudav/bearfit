@@ -21,13 +21,14 @@ const defaultUserData = {
     dateKey: null,
     main: null,
     secondary: null,
-    bonusClaimed: false,
     mainClaimed: false,
     secondaryClaimed: false,
+    rerollsLeft: 1,
   },
   dailyCounters: {
     dateKey: null,
     sessionsCompleted: 0,
+    combinedSessions: 0,
     pushups: 0,
     plankSeconds: 0,
     abs: 0,
@@ -152,106 +153,177 @@ function ensureDailyCountersDefaults(data) {
   return updated;
 }
 
-const dailyObjectiveTemplates = [
-  {
-    id: "xp_today_20",
-    type: "xp_today",
-    target: 20,
-    rewardXp: 5,
-    label: "Gagner 20 XP aujourd'hui",
-  },
-  {
-    id: "xp_today_40",
-    type: "xp_today",
-    target: 40,
-    rewardXp: 10,
-    label: "Gagner 40 XP aujourd'hui",
-  },
-  {
-    id: "xp_today_60",
-    type: "xp_today",
-    target: 60,
-    rewardXp: 15,
-    label: "Gagner 60 XP aujourd'hui",
-  },
-  {
-    id: "do_one_session",
-    type: "do_one_session",
-    target: 1,
-    rewardXp: 5,
-    label: "Faire 1 séance aujourd'hui",
-  },
-  {
-    id: "do_two_sessions",
-    type: "do_two_sessions",
-    target: 2,
-    rewardXp: 10,
-    label: "Faire 2 séances aujourd'hui",
-  },
-  {
-    id: "pushups_total_10",
-    type: "pushups_total",
-    target: 10,
-    rewardXp: 10,
-    label: "Faire 10 pompes aujourd'hui",
-  },
-  {
-    id: "pushups_total_20",
-    type: "pushups_total",
-    target: 20,
-    rewardXp: 10,
-    label: "Faire 20 pompes aujourd'hui",
-  },
-  {
-    id: "pushups_total_30",
-    type: "pushups_total",
-    target: 30,
-    rewardXp: 10,
-    label: "Faire 30 pompes aujourd'hui",
-  },
-  {
-    id: "plank_total_30",
-    type: "plank_total",
-    target: 30,
-    rewardXp: 10,
-    label: "Faire 30 secondes de gainage",
-  },
-  {
-    id: "plank_total_60",
-    type: "plank_total",
-    target: 60,
-    rewardXp: 10,
-    label: "Faire 60 secondes de gainage",
-  },
-  {
-    id: "plank_total_90",
-    type: "plank_total",
-    target: 90,
-    rewardXp: 10,
-    label: "Faire 90 secondes de gainage",
-  },
-  {
-    id: "abs_total_15",
-    type: "abs_total",
-    target: 15,
-    rewardXp: 10,
-    label: "Faire 15 abdos aujourd'hui",
-  },
-  {
-    id: "abs_total_30",
-    type: "abs_total",
-    target: 30,
-    rewardXp: 10,
-    label: "Faire 30 abdos aujourd'hui",
-  },
-  {
-    id: "abs_total_45",
-    type: "abs_total",
-    target: 45,
-    rewardXp: 10,
-    label: "Faire 45 abdos aujourd'hui",
-  },
-];
+function clampTarget(expected, minimum) {
+  const rawTarget = Math.round(expected * 0.7);
+  return Math.min(expected, Math.max(minimum, rawTarget));
+}
+
+function getTodayExpectedVolumes() {
+  const challengeIds = ["pushups", "plank", "abs", "triceps", "bench"];
+  const result = {};
+
+  challengeIds.forEach((challengeId) => {
+    const session = getTodayChallengeProgram(challengeId);
+    if (!session || !Array.isArray(session.series)) {
+      result[challengeId] = null;
+      return;
+    }
+    const expected = session.series.reduce((sum, value) => sum + value, 0);
+    result[challengeId] = expected > 0 ? expected : null;
+  });
+
+  return {
+    pushupsExpected: result.pushups,
+    plankExpected: result.plank,
+    absExpected: result.abs,
+    tricepsExpected: result.triceps,
+    benchExpected: result.bench,
+  };
+}
+
+function isCombinedSessionAvailable() {
+  const challengeIds = ["pushups", "plank", "abs", "triceps", "bench"];
+  const availableCount = challengeIds.filter((challengeId) =>
+    Boolean(getTodayChallengeProgram(challengeId))
+  ).length;
+  return availableCount >= 2;
+}
+
+function buildObjective({ id, type, target, rewardXp, label }) {
+  return {
+    id,
+    type,
+    target,
+    rewardXp,
+    label,
+    progress: 0,
+    done: false,
+  };
+}
+
+function buildObjectivePool() {
+  const pool = [];
+  const xpGoal = userData.settings?.dailyXpGoal ?? 0;
+  const xpTarget = Math.round(xpGoal * 0.8) || xpGoal;
+
+  if (xpTarget > 0) {
+    pool.push(
+      buildObjective({
+        id: `xp_today_${xpTarget}`,
+        type: "xp_today",
+        target: xpTarget,
+        rewardXp: 10,
+        label: `Gagner ${xpTarget} XP aujourd'hui`,
+      })
+    );
+  }
+
+  pool.push(
+    buildObjective({
+      id: "one_session",
+      type: "one_session",
+      target: 1,
+      rewardXp: 5,
+      label: "Faire 1 séance aujourd'hui",
+    })
+  );
+
+  pool.push(
+    buildObjective({
+      id: "two_sessions",
+      type: "two_sessions",
+      target: 2,
+      rewardXp: 10,
+      label: "Faire 2 séances aujourd'hui",
+    })
+  );
+
+  const expected = getTodayExpectedVolumes();
+
+  if (expected.pushupsExpected) {
+    const target = clampTarget(expected.pushupsExpected, 8);
+    pool.push(
+      buildObjective({
+        id: `pushups_total_${target}`,
+        type: "pushups_total",
+        target,
+        rewardXp: 10,
+        label: `Faire ${target} pompes aujourd'hui`,
+      })
+    );
+  }
+
+  if (expected.plankExpected) {
+    const target = clampTarget(expected.plankExpected, 20);
+    pool.push(
+      buildObjective({
+        id: `plank_total_${target}`,
+        type: "plank_total",
+        target,
+        rewardXp: 10,
+        label: `Faire ${target} secondes de gainage`,
+      })
+    );
+  }
+
+  if (expected.absExpected) {
+    const target = clampTarget(expected.absExpected, 10);
+    pool.push(
+      buildObjective({
+        id: `abs_total_${target}`,
+        type: "abs_total",
+        target,
+        rewardXp: 10,
+        label: `Faire ${target} abdos aujourd'hui`,
+      })
+    );
+  }
+
+  if (expected.tricepsExpected) {
+    const target = clampTarget(expected.tricepsExpected, 6);
+    pool.push(
+      buildObjective({
+        id: `triceps_total_${target}`,
+        type: "triceps_total",
+        target,
+        rewardXp: 10,
+        label: `Faire ${target} triceps aujourd'hui`,
+      })
+    );
+  }
+
+  if (expected.benchExpected) {
+    const target = clampTarget(expected.benchExpected, 6);
+    pool.push(
+      buildObjective({
+        id: `bench_total_${target}`,
+        type: "bench_total",
+        target,
+        rewardXp: 10,
+        label: `Faire ${target} développés couchés aujourd'hui`,
+      })
+    );
+  }
+
+  if (isCombinedSessionAvailable()) {
+    pool.push(
+      buildObjective({
+        id: "combo_session",
+        type: "combo_session",
+        target: 1,
+        rewardXp: 10,
+        label: "Faire une séance combinée aujourd'hui",
+      })
+    );
+  }
+
+  return pool;
+}
+
+function pickRandomObjective(options) {
+  if (!options.length) return null;
+  return options[Math.floor(Math.random() * options.length)];
+}
 
 // CHARGEMENT DES DONNÉES
 function loadUserData() {
@@ -321,6 +393,8 @@ window.updateStreak = updateStreak;
 window.ensureDailyObjectives = ensureDailyObjectives;
 window.ensureDailyCounters = ensureDailyCounters;
 window.evaluateObjectivesAndMaybeReward = evaluateObjectivesAndMaybeReward;
+window.getTodayExpectedVolumes = getTodayExpectedVolumes;
+window.rerollSecondaryObjective = rerollSecondaryObjective;
 
 // RECUPERER SEANCE DU JOUR
 function getTodayChallengeProgram(challengeId) {
@@ -453,6 +527,7 @@ function ensureDailyCounters() {
     userData.dailyCounters = {
       dateKey: todayKey,
       sessionsCompleted: 0,
+      combinedSessions: 0,
       pushups: 0,
       plankSeconds: 0,
       abs: 0,
@@ -475,50 +550,77 @@ function ensureDailyObjectives() {
     userData.dailyObjectives = structuredClone(defaultUserData.dailyObjectives);
   }
 
+  ensureDailyObjectivesDefaults(userData);
+
   if (userData.dailyObjectives.dateKey !== todayKey) {
-    const mainTemplate = dailyObjectiveTemplates[
-      Math.floor(Math.random() * dailyObjectiveTemplates.length)
-    ];
-    let secondaryTemplate = dailyObjectiveTemplates[
-      Math.floor(Math.random() * dailyObjectiveTemplates.length)
+    const pool = buildObjectivePool();
+    const mainPriorityTypes = [
+      "xp_today",
+      "one_session",
+      "pushups_total",
+      "plank_total",
+      "abs_total",
     ];
 
-    while (secondaryTemplate.id === mainTemplate.id) {
-      secondaryTemplate =
-        dailyObjectiveTemplates[
-          Math.floor(Math.random() * dailyObjectiveTemplates.length)
-        ];
-    }
+    const mainOptions = pool.filter((objective) =>
+      mainPriorityTypes.includes(objective.type)
+    );
+    const mainObjective = pickRandomObjective(
+      mainOptions.length ? mainOptions : pool
+    );
+
+    const secondaryOptions = pool.filter(
+      (objective) => objective.id !== mainObjective?.id
+    );
+    const secondaryObjective = pickRandomObjective(secondaryOptions);
 
     userData.dailyObjectives = {
       dateKey: todayKey,
-      main: {
-        id: mainTemplate.id,
-        label: mainTemplate.label,
-        type: mainTemplate.type,
-        target: mainTemplate.target,
-        rewardXp: mainTemplate.rewardXp,
-        progress: 0,
-        done: false,
-      },
-      secondary: {
-        id: secondaryTemplate.id,
-        label: secondaryTemplate.label,
-        type: secondaryTemplate.type,
-        target: secondaryTemplate.target,
-        rewardXp: secondaryTemplate.rewardXp,
-        progress: 0,
-        done: false,
-      },
-      bonusClaimed: false,
+      main: mainObjective,
+      secondary: secondaryObjective,
       mainClaimed: false,
       secondaryClaimed: false,
+      rerollsLeft: 1,
     };
 
     saveUserData(userData);
   }
 
   return userData.dailyObjectives;
+}
+
+function rerollSecondaryObjective() {
+  const objectives = ensureDailyObjectives();
+
+  if (!objectives) {
+    return { success: false, message: "Objectifs indisponibles." };
+  }
+
+  if (objectives.rerollsLeft <= 0) {
+    return { success: false, message: "Reroll déjà utilisé aujourd'hui." };
+  }
+
+  const pool = buildObjectivePool();
+  const secondaryOptions = pool.filter(
+    (objective) =>
+      objective.id !== objectives.main?.id &&
+      objective.id !== objectives.secondary?.id
+  );
+
+  if (!secondaryOptions.length) {
+    return { success: false, message: "Aucun autre objectif disponible." };
+  }
+
+  const newSecondary = pickRandomObjective(secondaryOptions);
+  objectives.secondary = newSecondary;
+  objectives.secondary.progress = 0;
+  objectives.secondary.done = false;
+  objectives.secondaryClaimed = false;
+  objectives.rerollsLeft -= 1;
+
+  saveUserData(userData);
+
+  return { success: true };
 }
 
 function recordDailySessionVolume(session) {
@@ -550,9 +652,12 @@ function recordDailySessionVolume(session) {
   saveUserData(userData);
 }
 
-function recordDailySessionCompletion() {
+function recordDailySessionCompletion(isCombined = false) {
   const counters = ensureDailyCounters();
   counters.sessionsCompleted += 1;
+  if (isCombined) {
+    counters.combinedSessions += 1;
+  }
   saveUserData(userData);
 }
 
@@ -569,8 +674,8 @@ function evaluateObjectivesAndMaybeReward() {
     switch (objective.type) {
       case "xp_today":
         return userData.xpToday.value;
-      case "do_one_session":
-      case "do_two_sessions":
+      case "one_session":
+      case "two_sessions":
         return userData.dailyCounters.sessionsCompleted;
       case "pushups_total":
         return userData.dailyCounters.pushups;
@@ -582,6 +687,8 @@ function evaluateObjectivesAndMaybeReward() {
         return userData.dailyCounters.triceps;
       case "bench_total":
         return userData.dailyCounters.bench;
+      case "combo_session":
+        return userData.dailyCounters.combinedSessions;
       default:
         return 0;
     }
@@ -608,9 +715,6 @@ function evaluateObjectivesAndMaybeReward() {
       objectives.secondaryClaimed = true;
     }
   }
-
-  objectives.bonusClaimed =
-    objectives.mainClaimed && objectives.secondaryClaimed;
 
   if (totalBonus > 0) {
     addXp(totalBonus);

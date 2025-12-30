@@ -267,7 +267,7 @@ function endCombinedSession() {
     addXp(totalXp);
     updateStreak();
     if (window.recordDailySessionCompletion) {
-      window.recordDailySessionCompletion();
+      window.recordDailySessionCompletion(true);
     }
 
     if (window.recordDailySessionVolume) {
