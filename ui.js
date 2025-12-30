@@ -99,6 +99,10 @@ function refreshUI() {
   if (typeof renderStats === "function") {
     renderStats();
   }
+
+  if (typeof renderSuccesses === "function") {
+    renderSuccesses();
+  }
 }
 
 // RAFRAÎCHISSEMENT AU CHARGEMENT

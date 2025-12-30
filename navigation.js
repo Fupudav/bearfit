@@ -21,6 +21,17 @@ function showScreen(screenId) {
   if (activeBtn) {
     activeBtn.classList.add("active");
   }
+
+  if (screenId === "stats" && typeof window.renderStats === "function") {
+    window.renderStats();
+  }
+
+  if (
+    screenId === "success" &&
+    typeof window.renderSuccesses === "function"
+  ) {
+    window.renderSuccesses();
+  }
 }
 
 // ÉVÉNEMENTS SUR LES BOUTONS
