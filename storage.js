@@ -49,6 +49,24 @@ const defaultUserData = {
   }
 };
 
+function ensureStatsDefaults(data) {
+  let updated = false;
+
+  if (!data.stats || typeof data.stats !== "object") {
+    data.stats = structuredClone(defaultUserData.stats);
+    return true;
+  }
+
+  Object.entries(defaultUserData.stats).forEach(([key, value]) => {
+    if (typeof data.stats[key] !== "number") {
+      data.stats[key] = value;
+      updated = true;
+    }
+  });
+
+  return updated;
+}
+
 // CHARGEMENT DES DONNÉES
 function loadUserData() {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -59,9 +77,15 @@ function loadUserData() {
   const data = JSON.parse(raw);
   const today = new Date().toDateString();
 
+  const statsUpdated = ensureStatsDefaults(data);
+
   if (data.lastXpDate !== today) {
     data.xpToday = 0;
     data.lastXpDate = today;
+    saveUserData(data);
+  }
+
+  if (statsUpdated) {
     saveUserData(data);
   }
 
