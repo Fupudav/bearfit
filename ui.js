@@ -26,26 +26,60 @@ function updateDailyTargetUI() {
 function updateTodayXpUI() {
   const todayXpEl = document.getElementById("home-today-xp");
   if (todayXpEl) {
-    todayXpEl.textContent = userData.xpToday;
+    todayXpEl.textContent = userData.xpToday?.value ?? 0;
   }
 }
 
 // OBJECTIFS DU JOUR (placeholders)
+function formatObjectiveLine(objective) {
+  if (!objective) return "–";
+  const progress = Number.isFinite(objective.progress)
+    ? Math.min(objective.progress, objective.target)
+    : 0;
+  const status = objective.done ? "✅" : "🎯";
+  return `${status} ${objective.label} (${progress}/${objective.target}) +${objective.rewardXp} XP`;
+}
+
 function updateObjectivesUI() {
   const mainObj = document.getElementById("home-main-objective");
   const secondObj = document.getElementById("home-secondary-objective");
 
-  if (mainObj) mainObj.textContent = "Faire au moins une séance";
-  if (secondObj) secondObj.textContent = "Gagner 20 XP aujourd'hui";
+  if (!mainObj || !secondObj) return;
+
+  const dailyObjectives = userData.dailyObjectives;
+  if (!dailyObjectives?.main || !dailyObjectives?.secondary) {
+    mainObj.textContent = "–";
+    secondObj.textContent = "–";
+    return;
+  }
+
+  mainObj.textContent = formatObjectiveLine(dailyObjectives.main);
+  secondObj.textContent = formatObjectiveLine(dailyObjectives.secondary);
+}
+
+function renderHome() {
+  if (window.ensureDailyObjectives) {
+    window.ensureDailyObjectives();
+  }
+
+  if (window.ensureDailyCounters) {
+    window.ensureDailyCounters();
+  }
+
+  if (window.evaluateObjectivesAndMaybeReward) {
+    window.evaluateObjectivesAndMaybeReward();
+  }
+
+  updateStreakUI();
+  updateDailyTargetUI();
+  updateTodayXpUI();
+  updateObjectivesUI();
 }
 
 // RAFRAÎCHISSEMENT GLOBAL UI
 function refreshUI() {
   updateHeaderUI();
-  updateStreakUI();
-  updateDailyTargetUI();
-  updateTodayXpUI();
-  updateObjectivesUI();
+  renderHome();
 
   if (window.renderChallenges) {
     window.renderChallenges();
@@ -61,3 +95,4 @@ refreshUI();
 
 // EXPORT DEBUG
 window.refreshUI = refreshUI;
+window.renderHome = renderHome;

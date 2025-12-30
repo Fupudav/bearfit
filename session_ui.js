@@ -135,6 +135,15 @@ document
     if (window.applySessionStats) {
       window.applySessionStats(currentSession);
     }
+    if (window.recordDailySessionCompletion) {
+      window.recordDailySessionCompletion();
+    }
+    if (window.recordDailySessionVolume) {
+      window.recordDailySessionVolume(currentSession);
+    }
+    if (window.evaluateObjectivesAndMaybeReward) {
+      window.evaluateObjectivesAndMaybeReward();
+    }
 
     saveUserData(userData); // 🔒 sécurité
     if (window.refreshUI) {
@@ -214,6 +223,7 @@ function endCombinedSession() {
 
   let totalXp = 0;
   let validCount = 0;
+  const completedSessions = [];
 
   challengeIds.forEach((challengeId) => {
     const session = getTodayChallengeProgram(challengeId);
@@ -231,6 +241,7 @@ function endCombinedSession() {
         );
     totalXp += xp;
     validCount += 1;
+    completedSessions.push(session);
 
     if (window.applySessionStats) {
       window.applySessionStats(session);
@@ -242,6 +253,19 @@ function endCombinedSession() {
   if (validCount > 0) {
     addXp(totalXp);
     updateStreak();
+    if (window.recordDailySessionCompletion) {
+      window.recordDailySessionCompletion();
+    }
+
+    if (window.recordDailySessionVolume) {
+      completedSessions.forEach((session) => {
+        window.recordDailySessionVolume(session);
+      });
+    }
+
+    if (window.evaluateObjectivesAndMaybeReward) {
+      window.evaluateObjectivesAndMaybeReward();
+    }
   }
 
   saveUserData(userData);
