@@ -189,6 +189,8 @@ function completeChallengeDay(challengeId) {
     }
   }
 
+  progress.lastCompletedDate = new Date().toDateString();
+
   saveUserData(userData);
 }
 
