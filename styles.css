@@ -8,7 +8,6 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
-  overflow-x: hidden;
 }
 
 :root {
@@ -99,6 +98,7 @@ body {
 main {
   padding: 14px;
   padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
 }
 
 /* ÉCRANS */
@@ -119,15 +119,20 @@ main {
   right: 0;
   background: var(--surface);
   display: flex;
+  flex-wrap: nowrap;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
+  scroll-padding-inline: 6px;
   align-items: stretch;
   gap: 4px;
-  padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+  padding: 6px calc(6px + env(safe-area-inset-right, 0px))
+    calc(6px + env(safe-area-inset-bottom, 0px))
+    calc(6px + env(safe-area-inset-left, 0px));
   border-top: 1px solid var(--border);
   z-index: 10;
+  touch-action: pan-x;
 }
 
 .nav-btn {
