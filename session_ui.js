@@ -23,21 +23,6 @@ const sessionState = {
   exerciseVolumes: {},
   completedSteps: [],
   challengeResults: [],
-  sessionAlreadyFinalized: false,
-  statsDelta: {
-    totalPompes: 0,
-    totalGainage: 0,
-    totalAbdos: 0,
-    totalTriceps: 0,
-    totalDeveloppe: 0,
-    maxPompes: 0,
-    maxGainage: 0,
-    maxAbdos: 0,
-    maxTriceps: 0,
-    maxDeveloppe: 0,
-    maxTricepsWeight: 0,
-    maxDeveloppeWeight: 0,
-  },
 };
 
 let audioContext = null;
@@ -120,21 +105,6 @@ function resetSessionState() {
   sessionState.exerciseVolumes = {};
   sessionState.completedSteps = [];
   sessionState.challengeResults = [];
-  sessionState.sessionAlreadyFinalized = false;
-  sessionState.statsDelta = {
-    totalPompes: 0,
-    totalGainage: 0,
-    totalAbdos: 0,
-    totalTriceps: 0,
-    totalDeveloppe: 0,
-    maxPompes: 0,
-    maxGainage: 0,
-    maxAbdos: 0,
-    maxTriceps: 0,
-    maxDeveloppe: 0,
-    maxTricepsWeight: 0,
-    maxDeveloppeWeight: 0,
-  };
 }
 
 function computeStepXp(step, performedValue) {
@@ -335,43 +305,62 @@ function renderSessionUI() {
 function applySeriesResult(step, performedValue) {
   if (!step || !step.exerciseKey) return;
 
+  const stats = userData.stats;
   const exerciseKey = step.exerciseKey;
-  const statsDelta = sessionState.statsDelta;
 
   sessionState.exerciseVolumes[exerciseKey] =
     (sessionState.exerciseVolumes[exerciseKey] || 0) + performedValue;
 
+  const addRecord = (label) => {
+    sessionState.newRecords.push(label);
+  };
+
   if (step.type === "reps") {
     switch (exerciseKey) {
       case "pushups":
-        statsDelta.totalPompes += performedValue;
-        statsDelta.maxPompes = Math.max(statsDelta.maxPompes, performedValue);
+        stats.totalPompes += performedValue;
+        if (performedValue > stats.maxPompes) {
+          stats.maxPompes = performedValue;
+          addRecord(`Pompes : ${performedValue} répétitions`);
+        }
         break;
       case "abs":
-        statsDelta.totalAbdos += performedValue;
-        statsDelta.maxAbdos = Math.max(statsDelta.maxAbdos, performedValue);
+        stats.totalAbdos += performedValue;
+        if (performedValue > stats.maxAbdos) {
+          stats.maxAbdos = performedValue;
+          addRecord(`Abdos : ${performedValue} répétitions`);
+        }
         break;
       case "triceps":
-        statsDelta.totalTriceps += performedValue;
-        statsDelta.maxTriceps = Math.max(statsDelta.maxTriceps, performedValue);
+        stats.totalTriceps += performedValue;
+        if (performedValue > stats.maxTriceps) {
+          stats.maxTriceps = performedValue;
+          addRecord(`Triceps : ${performedValue} répétitions`);
+        }
         if (
           Number.isFinite(step.weightKgTotal) &&
-          step.weightKgTotal > statsDelta.maxTricepsWeight
+          step.weightKgTotal > (stats.maxTricepsWeight || 0)
         ) {
-          statsDelta.maxTricepsWeight = step.weightKgTotal;
+          stats.maxTricepsWeight = step.weightKgTotal;
+          addRecord(
+            `Triceps : ${step.weightKgTotal} kg total`
+          );
         }
         break;
       case "bench":
-        statsDelta.totalDeveloppe += performedValue;
-        statsDelta.maxDeveloppe = Math.max(
-          statsDelta.maxDeveloppe,
-          performedValue
-        );
+        stats.totalDeveloppe += performedValue;
+        if (performedValue > stats.maxDeveloppe) {
+          stats.maxDeveloppe = performedValue;
+          addRecord(`Développé couché : ${performedValue} répétitions`);
+        }
         if (
           Number.isFinite(step.weightKgTotal) &&
-          step.weightKgTotal > statsDelta.maxDeveloppeWeight
+          step.weightKgTotal > (stats.maxDeveloppeWeight || 0)
         ) {
-          statsDelta.maxDeveloppeWeight = step.weightKgTotal;
+          stats.maxDeveloppeWeight = step.weightKgTotal;
+          addRecord(
+            `Développé couché : ${step.weightKgTotal} kg total`
+          );
         }
         break;
       default:
@@ -379,16 +368,31 @@ function applySeriesResult(step, performedValue) {
     }
   } else if (step.type === "time") {
     if (exerciseKey === "plank") {
-      statsDelta.totalGainage += performedValue;
-      statsDelta.maxGainage = Math.max(statsDelta.maxGainage, performedValue);
+      stats.totalGainage += performedValue;
+      if (performedValue > stats.maxGainage) {
+        stats.maxGainage = performedValue;
+        addRecord(`Gainage : ${performedValue} secondes`);
+      }
     }
   }
 }
 
+function addDailyVolumeFromSteps() {
+  const exerciseVolumes = sessionState.exerciseVolumes;
+  Object.entries(exerciseVolumes).forEach(([exerciseKey, volume]) => {
+    const session = {
+      challengeId: exerciseKey,
+      type: exerciseKey === "plank" ? "time" : "reps",
+      series: [volume],
+    };
+    if (window.recordDailySessionVolume) {
+      window.recordDailySessionVolume(session);
+    }
+  });
+}
+
 function maybeApplyDailyXpGoalBonus() {
-  const today = typeof window.getTodayKey === "function"
-    ? window.getTodayKey()
-    : new Date().toISOString().slice(0, 10);
+  const today = new Date().toDateString();
   const goal = userData.settings?.dailyXpGoal ?? 0;
   if (!goal) return 0;
 
@@ -398,139 +402,34 @@ function maybeApplyDailyXpGoalBonus() {
 
   if (userData.xpToday?.value >= goal) {
     const bonus = Math.round(goal * 0.2) || 20;
-    addXp(bonus, { skipSave: true });
+    addXp(bonus);
     userData.dailyXpGoalBonusDate = today;
+    saveUserData(userData);
     return bonus;
   }
 
   return 0;
 }
 
-function applySessionStatsAndRecords() {
-  const stats = userData.stats;
-  const delta = sessionState.statsDelta;
-  if (!stats || !delta) return [];
-
-  const records = [];
-
-  const maybeRecord = (condition, label) => {
-    if (condition) {
-      records.push(label);
-    }
-  };
-
-  stats.totalPompes += delta.totalPompes;
-  stats.totalGainage += delta.totalGainage;
-  stats.totalAbdos += delta.totalAbdos;
-  stats.totalTriceps += delta.totalTriceps;
-  stats.totalDeveloppe += delta.totalDeveloppe;
-
-  maybeRecord(
-    delta.maxPompes > stats.maxPompes,
-    `Pompes : ${delta.maxPompes} répétitions`
-  );
-  maybeRecord(
-    delta.maxGainage > stats.maxGainage,
-    `Gainage : ${delta.maxGainage} secondes`
-  );
-  maybeRecord(
-    delta.maxAbdos > stats.maxAbdos,
-    `Abdos : ${delta.maxAbdos} répétitions`
-  );
-  maybeRecord(
-    delta.maxTriceps > stats.maxTriceps,
-    `Triceps : ${delta.maxTriceps} répétitions`
-  );
-  maybeRecord(
-    delta.maxDeveloppe > stats.maxDeveloppe,
-    `Développé couché : ${delta.maxDeveloppe} répétitions`
-  );
-  maybeRecord(
-    delta.maxTricepsWeight > (stats.maxTricepsWeight || 0),
-    `Triceps : ${delta.maxTricepsWeight} kg total`
-  );
-  maybeRecord(
-    delta.maxDeveloppeWeight > (stats.maxDeveloppeWeight || 0),
-    `Développé couché : ${delta.maxDeveloppeWeight} kg total`
-  );
-
-  stats.maxPompes = Math.max(stats.maxPompes, delta.maxPompes);
-  stats.maxGainage = Math.max(stats.maxGainage, delta.maxGainage);
-  stats.maxAbdos = Math.max(stats.maxAbdos, delta.maxAbdos);
-  stats.maxTriceps = Math.max(stats.maxTriceps, delta.maxTriceps);
-  stats.maxDeveloppe = Math.max(stats.maxDeveloppe, delta.maxDeveloppe);
-  stats.maxTricepsWeight = Math.max(
-    stats.maxTricepsWeight || 0,
-    delta.maxTricepsWeight
-  );
-  stats.maxDeveloppeWeight = Math.max(
-    stats.maxDeveloppeWeight || 0,
-    delta.maxDeveloppeWeight
-  );
-
-  return records;
-}
-
-function updateDailyVolumes(counters) {
-  if (!counters) return;
-  Object.entries(sessionState.exerciseVolumes).forEach(([exerciseKey, volume]) => {
-    switch (exerciseKey) {
-      case "pushups":
-        counters.pushups += volume;
-        break;
-      case "plank":
-        counters.plankSeconds += volume;
-        break;
-      case "abs":
-        counters.abs += volume;
-        break;
-      case "triceps":
-        counters.triceps += volume;
-        break;
-      case "bench":
-        counters.bench += volume;
-        break;
-      default:
-        break;
-    }
-  });
-}
-
-function finalizeSession({ mode, includedChallengeIds, xpEarned }) {
-  if (sessionState.sessionAlreadyFinalized) return;
-  sessionState.sessionAlreadyFinalized = true;
-
-  stopGlobalTimer();
-  clearIntervalSafe(sessionState.restIntervalId);
-  clearIntervalSafe(sessionState.workIntervalId);
-  clearIntervalSafe(sessionState.countdownIntervalId);
+function finalizeSessionProgress() {
+  const uniqueChallengeIds = [
+    ...new Set(
+      sessionState.steps
+        .map((step) => step.challengeId)
+        .filter(Boolean)
+    ),
+  ];
 
   const completed = [];
   const skipped = [];
-  const todayKey =
-    typeof window.getTodayKey === "function"
-      ? window.getTodayKey()
-      : new Date().toISOString().slice(0, 10);
-  const trainingEntry =
-    typeof window.ensureTrainingLogEntry === "function"
-      ? window.ensureTrainingLogEntry(todayKey)
-      : null;
 
-  addXp(xpEarned, { skipSave: true });
-  const bonus = maybeApplyDailyXpGoalBonus();
-  sessionState.xpEarnedThisSession += bonus;
-
-  if (window.updateStreakOnTrainingCompletion) {
-    window.updateStreakOnTrainingCompletion({ skipSave: true });
-  }
-
-  if (mode === "solo" || mode === "combined") {
-    includedChallengeIds.forEach((challengeId) => {
-      const ok = completeChallengeDay(challengeId, { skipSave: true });
+  if (sessionState.mode === "solo" || sessionState.mode === "combined") {
+    uniqueChallengeIds.forEach((challengeId) => {
+      const ok = completeChallengeDay(challengeId);
       if (ok) {
         completed.push(challengeId);
         if (window.updateChallengeStreak) {
-          window.updateChallengeStreak(challengeId, { skipSave: true });
+          window.updateChallengeStreak(challengeId);
         }
       } else {
         skipped.push(challengeId);
@@ -538,47 +437,40 @@ function finalizeSession({ mode, includedChallengeIds, xpEarned }) {
     });
   }
 
-  if (trainingEntry) {
-    const sessionType = mode === "combined" ? "combined" : mode;
-    if (sessionType === "combined") {
-      trainingEntry.combinedSessions += 1;
-    } else if (sessionType === "free") {
-      trainingEntry.freeSessions += 1;
-    } else if (sessionType === "solo") {
-      trainingEntry.soloSessions += 1;
-    }
-    trainingEntry.sessionsCompleted += 1;
-    trainingEntry.xpEarned += sessionState.xpEarnedThisSession;
-  }
-
-  const counters = window.ensureDailyCounters
-    ? window.ensureDailyCounters()
-    : null;
-  if (counters) {
-    counters.sessionsCompleted += 1;
-    if (mode === "combined") {
-      counters.combinedSessions += 1;
-    }
-  }
-
-  if (userData.stats) {
-    userData.stats.totalSessions = (userData.stats.totalSessions || 0) + 1;
-    if (mode === "combined") {
+  if (sessionState.mode === "combined") {
+    if (userData.stats) {
       userData.stats.combinedSessionsCount =
         (userData.stats.combinedSessionsCount || 0) + 1;
     }
   }
 
-  updateDailyVolumes(counters);
+  if (window.updateStreakOnTrainingCompletion) {
+    window.updateStreakOnTrainingCompletion();
+  }
 
-  const records = applySessionStatsAndRecords();
-  sessionState.newRecords = records;
+  if (window.recordDailySessionCompletion) {
+    window.recordDailySessionCompletion(sessionState.mode === "combined");
+  }
+
+  addDailyVolumeFromSteps();
 
   sessionState.challengeResults = {
     completed,
     skipped,
   };
+}
 
+function finalizeSession() {
+  stopGlobalTimer();
+  clearIntervalSafe(sessionState.restIntervalId);
+  clearIntervalSafe(sessionState.workIntervalId);
+  clearIntervalSafe(sessionState.countdownIntervalId);
+
+  finalizeSessionProgress();
+
+  addXp(sessionState.xpEarnedThisSession);
+  const bonus = maybeApplyDailyXpGoalBonus();
+  sessionState.xpEarnedThisSession += bonus;
   if (window.ensureLeagueWeekUpToDate) {
     window.ensureLeagueWeekUpToDate();
   }
@@ -592,6 +484,9 @@ function finalizeSession({ mode, includedChallengeIds, xpEarned }) {
   }
 
   saveUserData(userData);
+  if (window.refreshUI) {
+    window.refreshUI();
+  }
   playBeep(0.2, 520);
   triggerVibration(160);
 
@@ -602,18 +497,7 @@ function finalizeSession({ mode, includedChallengeIds, xpEarned }) {
 
 function finishIfLastStep() {
   if (sessionState.stepIndex >= sessionState.steps.length) {
-    const includedChallengeIds = [
-      ...new Set(
-        sessionState.steps
-          .map((step) => step.challengeId)
-          .filter(Boolean)
-      ),
-    ];
-    finalizeSession({
-      mode: sessionState.mode,
-      includedChallengeIds,
-      xpEarned: sessionState.xpEarnedThisSession,
-    });
+    finalizeSession();
     return true;
   }
   return false;
@@ -793,11 +677,6 @@ function startSessionEngine({
   const globalTimerEl = document.getElementById("session-global-timer");
   if (globalTimerEl) {
     globalTimerEl.textContent = "00:00";
-  }
-
-  const mainBtn = document.getElementById("session-complete-btn");
-  if (mainBtn) {
-    mainBtn.disabled = false;
   }
 
   const recapEl = document.getElementById("session-recap");
@@ -981,20 +860,10 @@ function endFreeSessionEarly() {
 function handleRecapReturnHome() {
   sessionState.phase = "done";
   resetSessionState();
+  if (window.refreshUI) {
+    window.refreshUI();
+  }
   showScreen("home");
-}
-
-function isSessionActive() {
-  return sessionState.phase !== "idle";
-}
-
-function abortSession() {
-  stopGlobalTimer();
-  clearIntervalSafe(sessionState.restIntervalId);
-  clearIntervalSafe(sessionState.workIntervalId);
-  clearIntervalSafe(sessionState.countdownIntervalId);
-  resetSessionState();
-  renderSessionUI();
 }
 
 function updateFreeWeightUI() {
@@ -1092,5 +961,3 @@ window.startSession = startSoloSession;
 window.startCombinedSession = startCombinedSession;
 window.buildCombinedStepsFromSessions = buildCombinedStepsFromSessions;
 window.updateFreeExerciseOptions = updateFreeExerciseOptions;
-window.isSessionActive = isSessionActive;
-window.abortSession = abortSession;

@@ -29,7 +29,6 @@
         <p>Strike global : <span id="home-streak">0</span> jours</p>
         <p>Objectif XP du jour : <span id="home-daily-target">40</span></p>
         <p>XP aujourd'hui : <span id="home-today-xp">0</span></p>
-        <p>Séances aujourd'hui : <span id="home-sessions-today">0</span></p>
 
         <div>
           <h3>Objectif du jour</h3>
@@ -249,12 +248,18 @@
         <div class="settings-section">
           <h3>Thème</h3>
           <div class="segmented-control">
-            <input id="theme-light" type="radio" name="theme" data-theme-option="light" />
-            <label for="theme-light">Clair</label>
-            <input id="theme-dark" type="radio" name="theme" data-theme-option="dark" />
-            <label for="theme-dark">Sombre</label>
-            <input id="theme-auto" type="radio" name="theme" data-theme-option="auto" />
-            <label for="theme-auto">Auto</label>
+            <label>
+              <input type="radio" name="theme" data-theme-option="light" />
+              <span>Clair</span>
+            </label>
+            <label>
+              <input type="radio" name="theme" data-theme-option="dark" />
+              <span>Sombre</span>
+            </label>
+            <label>
+              <input type="radio" name="theme" data-theme-option="auto" />
+              <span>Auto</span>
+            </label>
           </div>
         </div>
 
@@ -340,16 +345,14 @@
 
     <!-- NAVIGATION BASSE -->
     <nav class="bottom-nav">
-      <div class="bottom-nav__inner">
-        <button data-screen="home" class="nav-btn active">Accueil</button>
-        <button data-screen="challenges" class="nav-btn">Challenges</button>
-        <button data-screen="stats" class="nav-btn">Stats</button>
-        <button data-screen="leagues" class="nav-btn">Ligues</button>
-        <button data-screen="free" class="nav-btn">Séance libre</button>
-        <button data-screen="settings" class="nav-btn">Réglages</button>
-        <button data-screen="success" class="nav-btn">Succès</button>
-        <button data-screen="profile" class="nav-btn">Profil</button>
-      </div>
+      <button data-screen="home" class="nav-btn active">Accueil</button>
+      <button data-screen="challenges" class="nav-btn">Challenges</button>
+      <button data-screen="stats" class="nav-btn">Stats</button>
+      <button data-screen="leagues" class="nav-btn">Ligues</button>
+      <button data-screen="free" class="nav-btn">Séance libre</button>
+      <button data-screen="settings" class="nav-btn">Réglages</button>
+      <button data-screen="success" class="nav-btn">Succès</button>
+      <button data-screen="profile" class="nav-btn">Profil</button>
     </nav>
   </div>
 
@@ -368,7 +371,7 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./service-worker.js");
+        navigator.serviceWorker.register("/bearfit/service-worker.js");
       });
     }
   </script>
