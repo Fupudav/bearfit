@@ -136,22 +136,6 @@ main {
   border-top: 3px solid var(--accent);
 }
 
-@media (max-width: 600px) {
-  main {
-    padding-bottom: 120px;
-  }
-
-  .bottom-nav {
-    flex-wrap: wrap;
-  }
-
-  .nav-btn {
-    flex: 1 0 25%;
-    padding: 8px 4px;
-    font-size: 12px;
-  }
-}
-
 /* CHALLENGES */
 .challenge-grid,
 #challenge-list {
