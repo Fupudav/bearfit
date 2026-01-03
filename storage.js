@@ -36,8 +36,13 @@ const OFF_DAYS_PATTERNS = {
 
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
+function toLocalIsoDate(date) {
+  const timezoneOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 10);
+}
+
 function isoToday() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalIsoDate(new Date());
 }
 
 function normalizeIsoDate(value) {
@@ -46,10 +51,10 @@ function normalizeIsoDate(value) {
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return null;
-    return parsed.toISOString().slice(0, 10);
+    return toLocalIsoDate(parsed);
   }
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10);
+    return toLocalIsoDate(value);
   }
   return null;
 }
@@ -601,7 +606,7 @@ function clampTarget(expected, minimum) {
 }
 
 function getTodayExpectedVolumes() {
-  const challengeIds = ["pushups", "plank", "abs", "triceps", "bench"];
+  const challengeIds = getActiveChallengeIds();
   const result = {};
 
   challengeIds.forEach((challengeId) => {
@@ -624,9 +629,10 @@ function getTodayExpectedVolumes() {
 }
 
 function isCombinedSessionAvailable() {
-  const challengeIds = ["pushups", "plank", "abs", "triceps", "bench"];
-  const availableCount = challengeIds.filter((challengeId) =>
-    Boolean(getTodayChallengeProgram(challengeId))
+  if (isTodayOffDay()) return false;
+  const challengeIds = getActiveChallengeIds();
+  const availableCount = challengeIds.filter(
+    (challengeId) => Boolean(getTodayChallengeProgram(challengeId))
   ).length;
   return availableCount >= 2;
 }
@@ -644,6 +650,7 @@ function buildObjective({ id, type, target, rewardXp, label }) {
 }
 
 function buildObjectivePool() {
+  if (isTodayOffDay()) return [];
   const pool = [];
   const xpGoal = userData.settings?.dailyXpGoal ?? 0;
   const xpTarget = Math.round(xpGoal * 0.8) || xpGoal;
@@ -869,7 +876,7 @@ function updateStreakOnTrainingCompletion() {
   } else {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayKey = yesterday.toISOString().slice(0, 10);
+    const yesterdayKey = toLocalIsoDate(yesterday);
 
     if (userData.lastTrainingDate === yesterdayKey) {
       userData.streakGlobal = (userData.streakGlobal || 0) + 1;
@@ -885,8 +892,8 @@ function updateStreakOnTrainingCompletion() {
 function maybeResetStreakOnOpen() {
   if (!userData.lastTrainingDate) return;
 
-  const today = new Date(isoToday());
-  const last = new Date(userData.lastTrainingDate);
+  const today = new Date(`${isoToday()}T00:00:00`);
+  const last = new Date(`${userData.lastTrainingDate}T00:00:00`);
   const diffDays = Math.floor((today - last) / 86400000);
 
   if (diffDays >= 2) {
@@ -952,6 +959,7 @@ window.getActiveChallengeIds = getActiveChallengeIds;
 window.isChallengeActive = isChallengeActive;
 window.isTodayOffDay = isTodayOffDay;
 window.getOffDaysPattern = getOffDaysPattern;
+window.isCombinedSessionAvailable = isCombinedSessionAvailable;
 
 function getMetricValue(pathString) {
   if (!pathString) return 0;
@@ -1174,6 +1182,10 @@ function getTodayChallengeProgram(challengeId) {
   const progress = userData.challenges[challengeId];
 
   if (!challenge || !progress) return null;
+  if (typeof isChallengeActive === "function" && !isChallengeActive(challengeId)) {
+    return null;
+  }
+  if (isTodayOffDay()) return null;
 
   const todayKey = new Date().toDateString();
   if (progress.lastCompletedDate === todayKey) return null;

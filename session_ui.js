@@ -809,6 +809,12 @@ function startFreeSessionFromForm() {
     return;
   }
 
+  const allowedTypes = getAllowedFreeTypes(exerciseKey);
+  if (!allowedTypes.includes(type)) {
+    alert("Type de séance indisponible pour cet exercice.");
+    return;
+  }
+
   const weightInfo =
     typeof window.getCurrentChallengeWeightInfo === "function"
       ? window.getCurrentChallengeWeightInfo(exerciseKey)
@@ -888,6 +894,38 @@ function updateFreeWeightUI() {
   }
 }
 
+function getAllowedFreeTypes(exerciseKey) {
+  const challenge = challengePrograms?.[exerciseKey];
+  if (challenge?.type === "time") return ["time"];
+  if (challenge?.type === "reps") return ["reps"];
+  return ["reps", "time"];
+}
+
+function updateFreeTypeOptions(exerciseKey) {
+  const typeSelect = document.getElementById("free-type");
+  if (!typeSelect) return;
+
+  const allowedTypes = getAllowedFreeTypes(exerciseKey);
+  typeSelect.innerHTML = "";
+
+  const options = [
+    { value: "reps", label: "Répétitions" },
+    { value: "time", label: "Temps (secondes)" },
+  ];
+
+  options.forEach((option) => {
+    if (!allowedTypes.includes(option.value)) return;
+    const opt = document.createElement("option");
+    opt.value = option.value;
+    opt.textContent = option.label;
+    typeSelect.appendChild(opt);
+  });
+
+  if (!allowedTypes.includes(typeSelect.value) && typeSelect.options.length) {
+    typeSelect.value = typeSelect.options[0].value;
+  }
+}
+
 function updateFreeExerciseOptions() {
   const exerciseSelect = document.getElementById("free-exercise");
   if (!exerciseSelect) return;
@@ -906,6 +944,7 @@ function updateFreeExerciseOptions() {
     option.disabled = true;
     option.selected = true;
     exerciseSelect.appendChild(option);
+    updateFreeTypeOptions("");
     updateFreeWeightUI();
     return;
   }
@@ -917,6 +956,7 @@ function updateFreeExerciseOptions() {
     exerciseSelect.appendChild(option);
   });
 
+  updateFreeTypeOptions(exerciseSelect.value);
   updateFreeWeightUI();
 }
 
@@ -952,7 +992,10 @@ if (freeStartBtn) {
 
 document
   .getElementById("free-exercise")
-  ?.addEventListener("change", updateFreeWeightUI);
+  ?.addEventListener("change", (event) => {
+    updateFreeTypeOptions(event.target.value);
+    updateFreeWeightUI();
+  });
 
 updateFreeExerciseOptions();
 updateFreeWeightUI();

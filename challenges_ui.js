@@ -6,6 +6,13 @@ function renderChallenges() {
 
   container.innerHTML = "";
 
+  if (typeof window.isTodayOffDay === "function" && window.isTodayOffDay()) {
+    const empty = document.createElement("p");
+    empty.textContent = "Jour de repos : aucun challenge disponible.";
+    container.appendChild(empty);
+    return;
+  }
+
   const challenges = Object.values(challengePrograms).filter((challenge) =>
     typeof window.isChallengeActive === "function"
       ? window.isChallengeActive(challenge.id)
