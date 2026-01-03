@@ -402,7 +402,6 @@ function updateProfileUI() {
 
 // RAFRAÎCHISSEMENT GLOBAL UI
 function refreshUI() {
-  window.__isRefreshingUI = true;
   updateHeaderUI();
   renderHome();
   updateSettingsUI();
@@ -429,7 +428,6 @@ function refreshUI() {
   if (typeof renderSuccesses === "function") {
     renderSuccesses();
   }
-  window.__isRefreshingUI = false;
 }
 
 // RAFRAÎCHISSEMENT AU CHARGEMENT
