@@ -4,6 +4,21 @@ const navButtons = document.querySelectorAll(".nav-btn");
 
 // FONCTION D'AFFICHAGE D'ÉCRAN
 function showScreen(screenId) {
+  if (
+    screenId !== "session" &&
+    typeof window.isSessionActive === "function" &&
+    window.isSessionActive()
+  ) {
+    const confirmLeave = window.confirm(
+      "Une séance est en cours. Quitter la séance ?"
+    );
+    if (!confirmLeave) {
+      return;
+    }
+    if (typeof window.abortSession === "function") {
+      window.abortSession();
+    }
+  }
   screens.forEach((screen) => {
     screen.classList.remove("active");
   });
@@ -20,6 +35,10 @@ function showScreen(screenId) {
   const activeBtn = document.querySelector(`[data-screen="${screenId}"]`);
   if (activeBtn) {
     activeBtn.classList.add("active");
+  }
+
+  if (typeof window.refreshUI === "function" && screenId !== "session") {
+    window.refreshUI();
   }
 
   if (screenId === "stats" && typeof window.renderStats === "function") {

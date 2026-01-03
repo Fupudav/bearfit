@@ -30,6 +30,25 @@ function updateTodayXpUI() {
   }
 }
 
+function updateSessionsTodayUI() {
+  const sessionsEl = document.getElementById("home-sessions-today");
+  if (!sessionsEl) return;
+  const todayKey =
+    typeof window.getTodayKey === "function"
+      ? window.getTodayKey()
+      : null;
+  const entry =
+    todayKey && typeof window.getTrainingLogEntry === "function"
+      ? window.getTrainingLogEntry(todayKey)
+      : null;
+  const sessionsCompleted =
+    entry?.sessionsCompleted ??
+    (entry?.combinedSessions ?? 0) +
+      (entry?.freeSessions ?? 0) +
+      (entry?.soloSessions ?? 0);
+  sessionsEl.textContent = String(sessionsCompleted ?? 0);
+}
+
 // OBJECTIFS DU JOUR (placeholders)
 function formatObjectiveLine(objective) {
   if (!objective) return "–";
@@ -84,6 +103,7 @@ function renderHome() {
   updateStreakUI();
   updateDailyTargetUI();
   updateTodayXpUI();
+  updateSessionsTodayUI();
   updateObjectivesUI();
 }
 

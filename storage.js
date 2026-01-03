@@ -36,8 +36,29 @@ const OFF_DAYS_PATTERNS = {
 
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
+function safeClone(value) {
+  if (typeof structuredClone === "function") {
+    return safeClone(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+}
+
+function getLocalIsoDate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function isoToday() {
-  return new Date().toISOString().slice(0, 10);
+  return getLocalIsoDate();
+}
+
+function parseIsoDate(value) {
+  if (typeof value !== "string") return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
 }
 
 function normalizeIsoDate(value) {
@@ -46,20 +67,19 @@ function normalizeIsoDate(value) {
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return null;
-    return parsed.toISOString().slice(0, 10);
+    return getLocalIsoDate(parsed);
   }
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10);
+    return getLocalIsoDate(value);
   }
   return null;
 }
 
 function getWeekStartISO(date = new Date()) {
-  const copy = new Date(date);
+  const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const dayIndex = (copy.getDay() + 6) % 7;
   copy.setDate(copy.getDate() - dayIndex);
-  copy.setHours(0, 0, 0, 0);
-  return copy.toISOString().slice(0, 10);
+  return getLocalIsoDate(copy);
 }
 
 function getLeagueXpRange(league) {
@@ -110,6 +130,7 @@ const defaultUserData = {
     triceps: 0,
     bench: 0,
   },
+  trainingLog: {},
 
   stats: {
     totalPompes: 0,
@@ -231,13 +252,13 @@ function isChallengeActive(challengeId) {
 function ensureSettingsDefaults(data) {
   let updated = false;
   if (!data.settings || typeof data.settings !== "object") {
-    data.settings = structuredClone(defaultUserData.settings);
+    data.settings = safeClone(defaultUserData.settings);
     return true;
   }
 
   Object.entries(defaultUserData.settings).forEach(([key, value]) => {
     if (data.settings[key] === undefined) {
-      data.settings[key] = structuredClone(value);
+      data.settings[key] = safeClone(value);
       updated = true;
     }
   });
@@ -281,7 +302,7 @@ function ensureSettingsDefaults(data) {
     !data.settings.activeChallenges ||
     typeof data.settings.activeChallenges !== "object"
   ) {
-    data.settings.activeChallenges = structuredClone(
+    data.settings.activeChallenges = safeClone(
       defaultUserData.settings.activeChallenges
     );
     updated = true;
@@ -332,7 +353,7 @@ function ensureLeagueDefaults(data) {
   const defaultWeekStart = getWeekStartISO(new Date());
 
   if (!data.league || typeof data.league !== "object") {
-    data.league = structuredClone(defaultUserData.league);
+    data.league = safeClone(defaultUserData.league);
     data.league.weekStartISO = defaultWeekStart;
     return true;
   }
@@ -383,7 +404,7 @@ function ensureStatsDefaults(data) {
   let updated = false;
 
   if (!data.stats || typeof data.stats !== "object") {
-    data.stats = structuredClone(defaultUserData.stats);
+    data.stats = safeClone(defaultUserData.stats);
     return true;
   }
 
@@ -409,7 +430,7 @@ function ensureChallengeStreakDefaults(data) {
   let updated = false;
 
   if (!data.challengeStreaks || typeof data.challengeStreaks !== "object") {
-    data.challengeStreaks = structuredClone(
+    data.challengeStreaks = safeClone(
       defaultUserData.challengeStreaks
     );
     return true;
@@ -432,7 +453,7 @@ function ensureLastChallengeTrainingDateDefaults(data) {
     !data.lastChallengeTrainingDate ||
     typeof data.lastChallengeTrainingDate !== "object"
   ) {
-    data.lastChallengeTrainingDate = structuredClone(
+    data.lastChallengeTrainingDate = safeClone(
       defaultUserData.lastChallengeTrainingDate
     );
     return true;
@@ -442,6 +463,12 @@ function ensureLastChallengeTrainingDateDefaults(data) {
     ([key, value]) => {
       if (data.lastChallengeTrainingDate[key] === undefined) {
         data.lastChallengeTrainingDate[key] = value;
+        updated = true;
+        return;
+      }
+      const normalized = normalizeIsoDate(data.lastChallengeTrainingDate[key]);
+      if (normalized !== data.lastChallengeTrainingDate[key]) {
+        data.lastChallengeTrainingDate[key] = normalized;
         updated = true;
       }
     }
@@ -464,6 +491,13 @@ function ensureDailyXpGoalBonusDateDefaults(data) {
     data.dailyXpGoalBonusDate = null;
     return true;
   }
+  if (data.dailyXpGoalBonusDate) {
+    const normalized = normalizeIsoDate(data.dailyXpGoalBonusDate);
+    if (normalized !== data.dailyXpGoalBonusDate) {
+      data.dailyXpGoalBonusDate = normalized;
+      return true;
+    }
+  }
 
   return false;
 }
@@ -478,7 +512,7 @@ function ensureXpTodayDefaults(data, today) {
         value: data.xpToday,
       };
     } else {
-      data.xpToday = structuredClone(defaultUserData.xpToday);
+      data.xpToday = safeClone(defaultUserData.xpToday);
     }
     updated = true;
   }
@@ -501,13 +535,13 @@ function ensureDailyObjectivesDefaults(data) {
   let updated = false;
 
   if (!data.dailyObjectives || typeof data.dailyObjectives !== "object") {
-    data.dailyObjectives = structuredClone(defaultUserData.dailyObjectives);
+    data.dailyObjectives = safeClone(defaultUserData.dailyObjectives);
     return true;
   }
 
   Object.entries(defaultUserData.dailyObjectives).forEach(([key, value]) => {
     if (data.dailyObjectives[key] === undefined) {
-      data.dailyObjectives[key] = structuredClone(value);
+      data.dailyObjectives[key] = safeClone(value);
       updated = true;
     }
   });
@@ -519,14 +553,56 @@ function ensureDailyCountersDefaults(data) {
   let updated = false;
 
   if (!data.dailyCounters || typeof data.dailyCounters !== "object") {
-    data.dailyCounters = structuredClone(defaultUserData.dailyCounters);
+    data.dailyCounters = safeClone(defaultUserData.dailyCounters);
     return true;
   }
 
   Object.entries(defaultUserData.dailyCounters).forEach(([key, value]) => {
     if (data.dailyCounters[key] === undefined) {
-      data.dailyCounters[key] = structuredClone(value);
+      data.dailyCounters[key] = safeClone(value);
       updated = true;
+    }
+  });
+
+  return updated;
+}
+
+function ensureTrainingLogDefaults(data) {
+  if (!data.trainingLog || typeof data.trainingLog !== "object") {
+    data.trainingLog = {};
+    return true;
+  }
+  return false;
+}
+
+function ensureChallengeProgressDefaults(data) {
+  let updated = false;
+  if (!data.challenges || typeof data.challenges !== "object") {
+    data.challenges = safeClone(defaultUserData.challenges);
+    return true;
+  }
+
+  CHALLENGE_IDS.forEach((challengeId) => {
+    const progress = data.challenges[challengeId];
+    if (!progress || typeof progress !== "object") {
+      data.challenges[challengeId] = { level: 1, day: 1 };
+      updated = true;
+      return;
+    }
+    if (!Number.isFinite(progress.level) || progress.level < 1) {
+      progress.level = 1;
+      updated = true;
+    }
+    if (!Number.isFinite(progress.day) || progress.day < 1) {
+      progress.day = 1;
+      updated = true;
+    }
+    if (progress.lastCompletedDate) {
+      const normalized = normalizeIsoDate(progress.lastCompletedDate);
+      if (normalized !== progress.lastCompletedDate) {
+        progress.lastCompletedDate = normalized;
+        updated = true;
+      }
     }
   });
 
@@ -601,7 +677,10 @@ function clampTarget(expected, minimum) {
 }
 
 function getTodayExpectedVolumes() {
-  const challengeIds = ["pushups", "plank", "abs", "triceps", "bench"];
+  const challengeIds =
+    typeof getActiveChallengeIds === "function"
+      ? getActiveChallengeIds()
+      : ["pushups", "plank", "abs", "triceps", "bench"];
   const result = {};
 
   challengeIds.forEach((challengeId) => {
@@ -624,7 +703,10 @@ function getTodayExpectedVolumes() {
 }
 
 function isCombinedSessionAvailable() {
-  const challengeIds = ["pushups", "plank", "abs", "triceps", "bench"];
+  const challengeIds =
+    typeof getActiveChallengeIds === "function"
+      ? getActiveChallengeIds()
+      : ["pushups", "plank", "abs", "triceps", "bench"];
   const availableCount = challengeIds.filter((challengeId) =>
     Boolean(getTodayChallengeProgram(challengeId))
   ).length;
@@ -772,19 +854,28 @@ function loadUserData() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
     saveUserData(defaultUserData);
-    return structuredClone(defaultUserData);
+    return safeClone(defaultUserData);
   }
-  const data = JSON.parse(raw);
-  const today = new Date().toDateString();
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (error) {
+    console.error("Données corrompues, reset.", error);
+    saveUserData(defaultUserData);
+    return safeClone(defaultUserData);
+  }
+  const today = getLocalIsoDate();
   let lastTrainingDateUpdated = false;
 
   const statsUpdated = ensureStatsDefaults(data);
   const xpTodayUpdated = ensureXpTodayDefaults(data, today);
   const dailyObjectivesUpdated = ensureDailyObjectivesDefaults(data);
   const dailyCountersUpdated = ensureDailyCountersDefaults(data);
+  const trainingLogUpdated = ensureTrainingLogDefaults(data);
   const challengeStreaksUpdated = ensureChallengeStreakDefaults(data);
   const lastChallengeTrainingDateUpdated =
     ensureLastChallengeTrainingDateDefaults(data);
+  const challengeProgressUpdated = ensureChallengeProgressDefaults(data);
   const unlockedAchievementsUpdated = ensureUnlockedAchievementsDefaults(data);
   const dailyXpGoalBonusDateUpdated =
     ensureDailyXpGoalBonusDateDefaults(data);
@@ -813,8 +904,10 @@ function loadUserData() {
     xpTodayUpdated ||
     dailyObjectivesUpdated ||
     dailyCountersUpdated ||
+    trainingLogUpdated ||
     challengeStreaksUpdated ||
     lastChallengeTrainingDateUpdated ||
+    challengeProgressUpdated ||
     unlockedAchievementsUpdated ||
     achievementsUpdated ||
     dailyXpGoalBonusDateUpdated ||
@@ -832,16 +925,16 @@ function loadUserData() {
 // SAUVEGARDE DES DONNÉES
 function saveUserData(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  if (typeof window.refreshUI === "function") {
+    window.refreshUI();
+  }
 }
 
 function resetUserData() {
   localStorage.removeItem(STORAGE_KEY);
-  userData = structuredClone(defaultUserData);
+  userData = safeClone(defaultUserData);
   saveUserData(userData);
   window.userData = userData;
-  if (window.refreshUI) {
-    window.refreshUI();
-  }
 }
 
 // ACCÈS RAPIDE
@@ -850,26 +943,29 @@ maybeResetStreakOnOpen();
 ensureLeagueWeekUpToDate();
 
 // MISE À JOUR DES XP
-function addXp(amount) {
+function addXp(amount, { skipSave = false } = {}) {
   ensureXpToday();
   userData.xp += amount;
   userData.xpToday.value += amount;
   userData.lastXpDate = userData.xpToday.dateKey;
   addWeekXp(amount);
-  saveUserData(userData);
+  if (!skipSave) {
+    saveUserData(userData);
+  }
 }
 
 // MISE À JOUR DU STREAK
-function updateStreakOnTrainingCompletion() {
+function updateStreakOnTrainingCompletion({ skipSave = false } = {}) {
   const today = isoToday();
   if (userData.lastTrainingDate === today) return;
 
   if (!userData.lastTrainingDate) {
     userData.streakGlobal = 1;
   } else {
-    const yesterday = new Date();
+    const yesterday = parseIsoDate(today);
+    if (!yesterday) return;
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayKey = yesterday.toISOString().slice(0, 10);
+    const yesterdayKey = getLocalIsoDate(yesterday);
 
     if (userData.lastTrainingDate === yesterdayKey) {
       userData.streakGlobal = (userData.streakGlobal || 0) + 1;
@@ -879,14 +975,17 @@ function updateStreakOnTrainingCompletion() {
   }
 
   userData.lastTrainingDate = today;
-  saveUserData(userData);
+  if (!skipSave) {
+    saveUserData(userData);
+  }
 }
 
 function maybeResetStreakOnOpen() {
   if (!userData.lastTrainingDate) return;
 
-  const today = new Date(isoToday());
-  const last = new Date(userData.lastTrainingDate);
+  const today = parseIsoDate(isoToday());
+  const last = parseIsoDate(userData.lastTrainingDate);
+  if (!today || !last) return;
   const diffDays = Math.floor((today - last) / 86400000);
 
   if (diffDays >= 2) {
@@ -895,18 +994,18 @@ function maybeResetStreakOnOpen() {
   }
 }
 
-function updateChallengeStreak(challengeId) {
+function updateChallengeStreak(challengeId, { skipSave = false } = {}) {
   if (!challengeId) return;
-  const today = new Date().toDateString();
+  const today = isoToday();
 
   if (!userData.challengeStreaks) {
-    userData.challengeStreaks = structuredClone(
+    userData.challengeStreaks = safeClone(
       defaultUserData.challengeStreaks
     );
   }
 
   if (!userData.lastChallengeTrainingDate) {
-    userData.lastChallengeTrainingDate = structuredClone(
+    userData.lastChallengeTrainingDate = safeClone(
       defaultUserData.lastChallengeTrainingDate
     );
   }
@@ -915,9 +1014,10 @@ function updateChallengeStreak(challengeId) {
     return;
   }
 
-  const yesterday = new Date();
+  const yesterday = parseIsoDate(today);
+  if (!yesterday) return;
   yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayKey = yesterday.toDateString();
+  const yesterdayKey = getLocalIsoDate(yesterday);
 
   if (userData.lastChallengeTrainingDate[challengeId] === yesterdayKey) {
     userData.challengeStreaks[challengeId] =
@@ -927,7 +1027,9 @@ function updateChallengeStreak(challengeId) {
   }
 
   userData.lastChallengeTrainingDate[challengeId] = today;
-  saveUserData(userData);
+  if (!skipSave) {
+    saveUserData(userData);
+  }
 }
 
 // EXPORT SI BESOIN
@@ -952,6 +1054,9 @@ window.getActiveChallengeIds = getActiveChallengeIds;
 window.isChallengeActive = isChallengeActive;
 window.isTodayOffDay = isTodayOffDay;
 window.getOffDaysPattern = getOffDaysPattern;
+window.getTodayKey = isoToday;
+window.getTrainingLogEntry = getTrainingLogEntry;
+window.ensureTrainingLogEntry = ensureTrainingLogEntry;
 
 function getMetricValue(pathString) {
   if (!pathString) return 0;
@@ -1017,6 +1122,7 @@ function evaluateAchievements() {
         currentValue: value,
         claimedLevels: Array(def.thresholds.length).fill(false),
       };
+    let rewardTotal = 0;
 
     if (!Array.isArray(state.claimedLevels)) {
       state.claimedLevels = Array(def.thresholds.length).fill(false);
@@ -1041,6 +1147,12 @@ function evaluateAchievements() {
           levelIndex: i,
           ts: Date.now(),
         });
+        const reward = Array.isArray(def.rewardXp)
+          ? def.rewardXp[i]
+          : def.rewardXp;
+        if (Number.isFinite(reward)) {
+          rewardTotal += reward;
+        }
       }
       state.levelIndex = newLevelIndex;
       userData.unlockedAchievements[def.id] = {
@@ -1054,6 +1166,10 @@ function evaluateAchievements() {
 
     state.currentValue = value;
     userData.achievements[def.id] = state;
+
+    if (rewardTotal > 0) {
+      addXp(rewardTotal, { skipSave: true });
+    }
   });
 
   if (userData.achievementEvents.length > 20) {
@@ -1174,8 +1290,12 @@ function getTodayChallengeProgram(challengeId) {
   const progress = userData.challenges[challengeId];
 
   if (!challenge || !progress) return null;
+  if (!isChallengeActive(challengeId)) return null;
+  if (isTodayOffDay()) return null;
 
-  const todayKey = new Date().toDateString();
+  const todayKey = isoToday();
+  const trainingEntry = getTrainingLogEntry(todayKey);
+  if (trainingEntry?.completedChallenges?.[challengeId]) return null;
   if (progress.lastCompletedDate === todayKey) return null;
 
   const level = progress.level;
@@ -1201,21 +1321,52 @@ function getTodayChallengeProgram(challengeId) {
 window.getTodayChallengeProgram = getTodayChallengeProgram;
 
 // VALIDER SEANCE
-function completeChallengeDay(challengeId) {
-  const progress = userData.challenges[challengeId];
+function completeChallengeDay(challengeId, { skipSave = false } = {}) {
+  if (!userData.challenges || typeof userData.challenges !== "object") {
+    userData.challenges = safeClone(defaultUserData.challenges);
+  }
+  let progress = userData.challenges[challengeId];
   const challenge = challengePrograms[challengeId];
 
-  if (!progress || !challenge) return false;
-  const todayKey = new Date().toDateString();
+  if (!progress) {
+    progress = { level: 1, day: 1 };
+    userData.challenges[challengeId] = progress;
+  }
+
+  if (!challenge) return false;
+  const todayKey = isoToday();
+  const trainingEntry = ensureTrainingLogEntry(todayKey);
+  if (trainingEntry.completedChallenges?.[challengeId]) return false;
   if (progress.lastCompletedDate === todayKey) return false;
+
+  if (!Number.isFinite(progress.level) || progress.level < 1) {
+    progress.level = 1;
+  }
+  if (!Number.isFinite(progress.day) || progress.day < 1) {
+    progress.day = 1;
+  }
 
   const currentLevel = progress.level;
   const currentDay = progress.day;
 
-  const currentLevelData = challenge.levels[currentLevel];
-  if (!currentLevelData) return false;
+  let currentLevelData = challenge.levels[currentLevel];
+  if (!currentLevelData) {
+    const maxLevel = Math.max(
+      ...Object.keys(challenge.levels).map((levelKey) => Number(levelKey))
+    );
+    progress.level = Number.isFinite(maxLevel) ? maxLevel : 1;
+    progress.day = Math.min(
+      progress.day,
+      Object.keys(challenge.levels[progress.level]?.days || {}).length || 1
+    );
+    currentLevelData = challenge.levels[progress.level];
+    if (!currentLevelData) return false;
+  }
 
   const daysInLevel = Object.keys(currentLevelData.days).length;
+  if (progress.day > daysInLevel) {
+    progress.day = daysInLevel;
+  }
 
   if (currentDay < daysInLevel) {
     progress.day += 1;
@@ -1231,8 +1382,11 @@ function completeChallengeDay(challengeId) {
   }
 
   progress.lastCompletedDate = todayKey;
+  trainingEntry.completedChallenges[challengeId] = true;
 
-  saveUserData(userData);
+  if (!skipSave) {
+    saveUserData(userData);
+  }
   return true;
 }
 
@@ -1277,10 +1431,10 @@ function computeSessionVolume(session) {
 }
 
 function ensureXpToday() {
-  const todayKey = new Date().toDateString();
+  const todayKey = isoToday();
 
   if (!userData.xpToday || typeof userData.xpToday !== "object") {
-    userData.xpToday = structuredClone(defaultUserData.xpToday);
+    userData.xpToday = safeClone(defaultUserData.xpToday);
   }
 
   if (typeof userData.xpToday.value !== "number") {
@@ -1296,10 +1450,10 @@ function ensureXpToday() {
 }
 
 function ensureDailyCounters() {
-  const todayKey = new Date().toDateString();
+  const todayKey = isoToday();
 
   if (!userData.dailyCounters || typeof userData.dailyCounters !== "object") {
-    userData.dailyCounters = structuredClone(defaultUserData.dailyCounters);
+    userData.dailyCounters = safeClone(defaultUserData.dailyCounters);
   }
 
   if (userData.dailyCounters.dateKey !== todayKey) {
@@ -1319,14 +1473,42 @@ function ensureDailyCounters() {
   return userData.dailyCounters;
 }
 
+function ensureTrainingLogEntry(dateKey) {
+  if (!dateKey) return null;
+  if (!userData.trainingLog || typeof userData.trainingLog !== "object") {
+    userData.trainingLog = {};
+  }
+  if (!userData.trainingLog[dateKey]) {
+    userData.trainingLog[dateKey] = {};
+  }
+  const entry = userData.trainingLog[dateKey];
+  if (!entry.completedChallenges || typeof entry.completedChallenges !== "object") {
+    entry.completedChallenges = {};
+  }
+  if (!Number.isFinite(entry.combinedSessions)) entry.combinedSessions = 0;
+  if (!Number.isFinite(entry.freeSessions)) entry.freeSessions = 0;
+  if (!Number.isFinite(entry.soloSessions)) entry.soloSessions = 0;
+  if (!Number.isFinite(entry.sessionsCompleted)) entry.sessionsCompleted = 0;
+  if (!Number.isFinite(entry.xpEarned)) entry.xpEarned = 0;
+  return entry;
+}
+
+function getTrainingLogEntry(dateKey) {
+  if (!dateKey) return null;
+  if (!userData.trainingLog || typeof userData.trainingLog !== "object") {
+    return null;
+  }
+  return userData.trainingLog[dateKey] || null;
+}
+
 function ensureDailyObjectives() {
-  const todayKey = new Date().toDateString();
+  const todayKey = isoToday();
 
   if (
     !userData.dailyObjectives ||
     typeof userData.dailyObjectives !== "object"
   ) {
-    userData.dailyObjectives = structuredClone(defaultUserData.dailyObjectives);
+    userData.dailyObjectives = safeClone(defaultUserData.dailyObjectives);
   }
 
   ensureDailyObjectivesDefaults(userData);
@@ -1436,6 +1618,16 @@ function recordDailySessionCompletion(isCombined = false) {
   counters.sessionsCompleted += 1;
   if (isCombined) {
     counters.combinedSessions += 1;
+  }
+  const todayKey = isoToday();
+  const trainingEntry = ensureTrainingLogEntry(todayKey);
+  if (trainingEntry) {
+    if (isCombined) {
+      trainingEntry.combinedSessions += 1;
+    } else {
+      trainingEntry.soloSessions += 1;
+    }
+    trainingEntry.sessionsCompleted += 1;
   }
   if (userData.stats) {
     userData.stats.totalSessions = (userData.stats.totalSessions || 0) + 1;
