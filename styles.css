@@ -98,7 +98,7 @@ body {
 /* CONTENU PRINCIPAL */
 main {
   padding: 14px;
-  padding-bottom: 70px; /* place pour la nav basse */
+  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ÉCRANS */
@@ -118,17 +118,24 @@ main {
   left: 0;
   right: 0;
   background: var(--surface);
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  align-items: stretch;
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
+  z-index: 10;
 }
 
 .nav-btn {
-  flex: 1;
-  padding: 10px 4px;
+  padding: 8px 6px;
   background: transparent;
   color: var(--muted);
   border: none;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+  min-height: 44px;
+  white-space: normal;
 }
 
 .nav-btn.active {
@@ -138,17 +145,16 @@ main {
 
 @media (max-width: 600px) {
   main {
-    padding-bottom: 120px;
+    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px));
   }
 
   .bottom-nav {
-    flex-wrap: wrap;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .nav-btn {
-    flex: 1 0 25%;
     padding: 8px 4px;
-    font-size: 12px;
+    font-size: 11px;
   }
 }
 
