@@ -496,7 +496,11 @@ function updateDailyVolumes(counters) {
   });
 }
 
-function finalizeSession({ mode, includedChallengeIds, xpEarned }) {
+function finalizeSession({
+  mode = sessionState.mode,
+  includedChallengeIds = [],
+  xpEarned = 0,
+} = {}) {
   if (sessionState.sessionAlreadyFinalized) return;
   sessionState.sessionAlreadyFinalized = true;
 
@@ -975,7 +979,11 @@ function addFreeSeries() {
 
 function endFreeSessionEarly() {
   if (sessionState.mode !== "free") return;
-  finalizeSession();
+  finalizeSession({
+    mode: "free",
+    includedChallengeIds: [],
+    xpEarned: sessionState.xpEarnedThisSession,
+  });
 }
 
 function handleRecapReturnHome() {

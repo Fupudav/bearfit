@@ -923,9 +923,13 @@ function loadUserData() {
 }
 
 // SAUVEGARDE DES DONNÉES
-function saveUserData(data) {
+function saveUserData(data, { skipRefresh = false } = {}) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  if (typeof window.refreshUI === "function") {
+  if (
+    !skipRefresh &&
+    !window.__isRefreshingUI &&
+    typeof window.refreshUI === "function"
+  ) {
     window.refreshUI();
   }
 }
@@ -944,6 +948,7 @@ ensureLeagueWeekUpToDate();
 
 // MISE À JOUR DES XP
 function addXp(amount, { skipSave = false } = {}) {
+  if (!Number.isFinite(amount)) return;
   ensureXpToday();
   userData.xp += amount;
   userData.xpToday.value += amount;
