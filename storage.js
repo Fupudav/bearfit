@@ -38,7 +38,7 @@ const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 function safeClone(value) {
   if (typeof structuredClone === "function") {
-    return safeClone(value);
+    return structuredClone(value);
   }
   return JSON.parse(JSON.stringify(value));
 }
