@@ -36,6 +36,24 @@ const OFF_DAYS_PATTERNS = {
 
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
+function isoToday() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function normalizeIsoDate(value) {
+  if (!value) return null;
+  if (typeof value === "string") {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toISOString().slice(0, 10);
+  }
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  return null;
+}
+
 function getWeekStartISO(date = new Date()) {
   const copy = new Date(date);
   const dayIndex = (copy.getDay() + 6) % 7;
@@ -758,6 +776,7 @@ function loadUserData() {
   }
   const data = JSON.parse(raw);
   const today = new Date().toDateString();
+  let lastTrainingDateUpdated = false;
 
   const statsUpdated = ensureStatsDefaults(data);
   const xpTodayUpdated = ensureXpTodayDefaults(data, today);
@@ -773,6 +792,11 @@ function loadUserData() {
   const leagueHistoryUpdated = ensureLeagueHistoryDefaults(data);
   const settingsUpdated = ensureSettingsDefaults(data);
   let achievementsUpdated = false;
+  const normalizedLastTrainingDate = normalizeIsoDate(data.lastTrainingDate);
+  if (normalizedLastTrainingDate !== data.lastTrainingDate) {
+    data.lastTrainingDate = normalizedLastTrainingDate;
+    lastTrainingDateUpdated = true;
+  }
 
   if (!data.achievements || typeof data.achievements !== "object") {
     data.achievements = {};
@@ -796,7 +820,8 @@ function loadUserData() {
     dailyXpGoalBonusDateUpdated ||
     leagueUpdated ||
     leagueHistoryUpdated ||
-    settingsUpdated
+    settingsUpdated ||
+    lastTrainingDateUpdated
   ) {
     saveUserData(data);
   }
@@ -821,6 +846,7 @@ function resetUserData() {
 
 // ACCÈS RAPIDE
 let userData = loadUserData();
+maybeResetStreakOnOpen();
 ensureLeagueWeekUpToDate();
 
 // MISE À JOUR DES XP
@@ -834,42 +860,39 @@ function addXp(amount) {
 }
 
 // MISE À JOUR DU STREAK
-function updateStreak() {
-  const today = new Date().toDateString();
+function updateStreakOnTrainingCompletion() {
+  const today = isoToday();
   if (userData.lastTrainingDate === today) return;
 
-  if (userData.lastTrainingDate) {
+  if (!userData.lastTrainingDate) {
+    userData.streakGlobal = 1;
+  } else {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = yesterday.toISOString().slice(0, 10);
 
-    if (userData.lastTrainingDate === yesterday.toDateString()) {
-      userData.streakGlobal += 1;
+    if (userData.lastTrainingDate === yesterdayKey) {
+      userData.streakGlobal = (userData.streakGlobal || 0) + 1;
     } else {
-      const lastTrainingDate = new Date(userData.lastTrainingDate);
-      const cursor = new Date(lastTrainingDate);
-      cursor.setDate(cursor.getDate() + 1);
-      let onlyOffDays = true;
-
-      while (cursor.toDateString() !== today) {
-        if (!isDateOffDay(cursor, userData.settings)) {
-          onlyOffDays = false;
-          break;
-        }
-        cursor.setDate(cursor.getDate() + 1);
-      }
-
-      if (onlyOffDays) {
-        userData.streakGlobal += 1;
-      } else {
-        userData.streakGlobal = 1;
-      }
+      userData.streakGlobal = 1;
     }
-  } else {
-    userData.streakGlobal = 1;
   }
 
   userData.lastTrainingDate = today;
   saveUserData(userData);
+}
+
+function maybeResetStreakOnOpen() {
+  if (!userData.lastTrainingDate) return;
+
+  const today = new Date(isoToday());
+  const last = new Date(userData.lastTrainingDate);
+  const diffDays = Math.floor((today - last) / 86400000);
+
+  if (diffDays >= 2) {
+    userData.streakGlobal = 0;
+    saveUserData(userData);
+  }
 }
 
 function updateChallengeStreak(challengeId) {
@@ -910,8 +933,11 @@ function updateChallengeStreak(challengeId) {
 // EXPORT SI BESOIN
 window.userData = userData;
 window.addXp = addXp;
-window.updateStreak = updateStreak;
+window.isoToday = isoToday;
+window.updateStreakOnTrainingCompletion = updateStreakOnTrainingCompletion;
+window.updateStreak = updateStreakOnTrainingCompletion;
 window.updateChallengeStreak = updateChallengeStreak;
+window.maybeResetStreakOnOpen = maybeResetStreakOnOpen;
 window.ensureDailyObjectives = ensureDailyObjectives;
 window.ensureDailyCounters = ensureDailyCounters;
 window.evaluateObjectivesAndMaybeReward = evaluateObjectivesAndMaybeReward;

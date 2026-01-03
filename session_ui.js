@@ -444,7 +444,9 @@ function finalizeSessionProgress() {
     }
   }
 
-  updateStreak();
+  if (window.updateStreakOnTrainingCompletion) {
+    window.updateStreakOnTrainingCompletion();
+  }
 
   if (window.recordDailySessionCompletion) {
     window.recordDailySessionCompletion(sessionState.mode === "combined");
@@ -482,6 +484,9 @@ function finalizeSession() {
   }
 
   saveUserData(userData);
+  if (window.refreshUI) {
+    window.refreshUI();
+  }
   playBeep(0.2, 520);
   triggerVibration(160);
 
