@@ -85,6 +85,19 @@ function renderHome() {
   updateDailyTargetUI();
   updateTodayXpUI();
   updateObjectivesUI();
+
+  const combinedBtn = document.getElementById("btn-combined-session");
+  if (combinedBtn) {
+    const isOffDay =
+      typeof window.isTodayOffDay === "function" && window.isTodayOffDay();
+    const isAvailable =
+      typeof window.isCombinedSessionAvailable === "function"
+        ? window.isCombinedSessionAvailable()
+        : true;
+    const disabled = isOffDay || !isAvailable;
+    combinedBtn.disabled = disabled;
+    combinedBtn.dataset.disabledReason = isOffDay ? "offday" : "";
+  }
 }
 
 let reminderTimeouts = {

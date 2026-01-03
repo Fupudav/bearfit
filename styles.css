@@ -211,6 +211,11 @@ button:active {
   opacity: 0.8;
 }
 
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 360px) {
   .challenge-grid,
   #challenge-list {
@@ -382,6 +387,40 @@ button:active {
   display: grid;
   gap: 8px;
   margin-top: 12px;
+}
+
+@media (min-width: 900px) {
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .bottom-nav {
+    max-width: 1100px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 16px 16px 0 0;
+  }
+
+  .challenge-grid,
+  #challenge-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #stats,
+  #leagues,
+  #success {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+  }
+
+  #stats > h2,
+  #leagues > h2,
+  #success > h2 {
+    grid-column: 1 / -1;
+  }
 }
 
 /* SESSION */

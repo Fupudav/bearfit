@@ -8,6 +8,13 @@ function renderCombinedList() {
 
   list.innerHTML = "";
 
+  if (typeof window.isTodayOffDay === "function" && window.isTodayOffDay()) {
+    const empty = document.createElement("p");
+    empty.textContent = "Jour de repos : séance combinée indisponible.";
+    list.appendChild(empty);
+    return;
+  }
+
   const challenges = Object.values(challengePrograms).filter((challenge) =>
     typeof window.isChallengeActive === "function"
       ? window.isChallengeActive(challenge.id)
@@ -41,6 +48,16 @@ function renderCombinedList() {
 function openCombinedModal() {
   const modal = document.getElementById("combined-modal");
   if (!modal) return;
+  const startBtn = document.getElementById("combined-start-btn");
+  const isOffDay =
+    typeof window.isTodayOffDay === "function" && window.isTodayOffDay();
+  const isAvailable =
+    typeof window.isCombinedSessionAvailable === "function"
+      ? window.isCombinedSessionAvailable()
+      : true;
+  if (startBtn) {
+    startBtn.disabled = isOffDay || !isAvailable;
+  }
   renderCombinedList();
   modal.classList.remove("hidden");
 }
