@@ -149,7 +149,9 @@ function scheduleReminders() {
   if (!userData.settings?.remindersEnabled) return;
 
   scheduleReminderTimeout("daily", userData.settings.reminderDailyTime, () => {
-    const today = new Date().toDateString();
+    const today = typeof window.isoToday === "function"
+      ? window.isoToday()
+      : new Date().toISOString().slice(0, 10);
     if (userData.lastTrainingDate !== today) {
       showToast("Fais ta séance");
     }

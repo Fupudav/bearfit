@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>BearFit Challenge</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="manifest" href="/bearfit/manifest.json" />
   <!-- On ajoutera le CSS plus tard -->
   <link rel="stylesheet" href="./styles.css" />
 </head>
@@ -366,6 +368,13 @@
   <script src="./success_ui.js"></script>
   <script src="./combined_ui.js"></script>
   <script src="./session_ui.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/bearfit/service-worker.js");
+      });
+    }
+  </script>
 </body>
 
 </html>

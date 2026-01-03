@@ -1,0 +1,14 @@
+{
+  "name": "BearFit",
+  "short_name": "BearFit",
+  "start_url": "/bearfit/",
+  "scope": "/bearfit/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "description": "Challenges quotidiens fitness avec XP, streak et succès.",
+  "icons": [
+    { "src": "/bearfit/icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" },
+    { "src": "/bearfit/icons/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml" }
+  ]
+}
