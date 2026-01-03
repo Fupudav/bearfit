@@ -23,6 +23,14 @@ function renderChallenges() {
     const progress = userData.challenges[challenge.id];
     const level = progress?.level ?? 1;
     const day = progress?.day ?? 1;
+    const todayKey =
+      typeof window.getTodayKey === "function" ? window.getTodayKey() : null;
+    const trainingEntry =
+      todayKey && typeof window.getTrainingLogEntry === "function"
+        ? window.getTrainingLogEntry(todayKey)
+        : null;
+    const completedToday =
+      trainingEntry?.completedChallenges?.[challenge.id] === true;
     const weightInfo =
       typeof window.getChallengeWeightInfo === "function"
         ? window.getChallengeWeightInfo(challenge.id, level, day)
@@ -35,7 +43,7 @@ function renderChallenges() {
     tile.innerHTML = `
       <h3>${challenge.name}</h3>
       <p>Type : ${challenge.type === "reps" ? "Répétitions" : "Temps"}</p>
-      <p>Niveau ${level} – Jour ${day}</p>
+      <p>${completedToday ? "Fait aujourd'hui ✅" : `Niveau ${level} – Jour ${day}`}</p>
       <p class="challenge-streak">🔥 ${streakValue}j</p>
       ${weightInfo ? `<p>Poids : ${weightInfo.label}</p>` : ""}
     `;

@@ -26,6 +26,7 @@ body {
   --leaderboard-user-bg: #2c3b2c;
   --leaderboard-user-text: #a7f3a7;
   --input-bg: #151515;
+  --bottom-nav-height: 84px;
 }
 
 .theme-light {
@@ -76,7 +77,7 @@ body {
 
 /* HEADER */
 .app-header {
-  padding: 12px 16px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
   background: var(--surface);
   display: flex;
   justify-content: space-between;
@@ -97,7 +98,7 @@ body {
 /* CONTENU PRINCIPAL */
 main {
   padding: 14px;
-  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
   overflow-x: hidden;
 }
 
@@ -118,6 +119,14 @@ main {
   left: 0;
   right: 0;
   background: var(--surface);
+  padding: 6px calc(6px + env(safe-area-inset-right, 0px))
+    calc(6px + env(safe-area-inset-bottom, 0px))
+    calc(6px + env(safe-area-inset-left, 0px));
+  border-top: 1px solid var(--border);
+  z-index: 10;
+}
+
+.bottom-nav__inner {
   display: flex;
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -127,11 +136,6 @@ main {
   scroll-padding-inline: 6px;
   align-items: stretch;
   gap: 4px;
-  padding: 6px calc(6px + env(safe-area-inset-right, 0px))
-    calc(6px + env(safe-area-inset-bottom, 0px))
-    calc(6px + env(safe-area-inset-left, 0px));
-  border-top: 1px solid var(--border);
-  z-index: 10;
   touch-action: pan-x;
 }
 
@@ -146,6 +150,7 @@ main {
   text-align: center;
   min-width: 72px;
   min-height: 44px;
+  width: auto;
   white-space: normal;
   scroll-snap-align: start;
 }
@@ -156,11 +161,15 @@ main {
 }
 
 @media (max-width: 600px) {
-  main {
-    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px));
+  :root {
+    --bottom-nav-height: 160px;
   }
 
-  .bottom-nav {
+  main {
+    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bottom-nav__inner {
     gap: 2px;
   }
 
@@ -291,7 +300,7 @@ button:active {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  z-index: 10;
+  z-index: 20;
 }
 
 .modal.hidden {
@@ -354,6 +363,10 @@ button:active {
   gap: 8px;
 }
 
+.segmented-control input[type="radio"] {
+  display: none;
+}
+
 .segmented-control label {
   margin: 0;
   padding: 8px;
@@ -364,17 +377,13 @@ button:active {
   border: 1px solid transparent;
 }
 
-.segmented-control input[type="radio"] {
-  display: none;
-}
-
-.segmented-control label:has(input[type="radio"]:checked) {
+.segmented-control input[type="radio"]:checked + label {
   border: 1px solid var(--accent);
 }
 
 .toast {
   position: fixed;
-  bottom: 84px;
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   background: var(--surface);
