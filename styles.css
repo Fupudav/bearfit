@@ -118,15 +118,20 @@ main {
   left: 0;
   right: 0;
   background: var(--surface);
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
   align-items: stretch;
+  gap: 4px;
   padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   z-index: 10;
 }
 
 .nav-btn {
+  flex: 0 0 auto;
   padding: 8px 6px;
   background: transparent;
   color: var(--muted);
@@ -134,8 +139,10 @@ main {
   font-size: 12px;
   line-height: 1.2;
   text-align: center;
+  min-width: 72px;
   min-height: 44px;
   white-space: normal;
+  scroll-snap-align: start;
 }
 
 .nav-btn.active {
@@ -149,7 +156,7 @@ main {
   }
 
   .bottom-nav {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
   }
 
   .nav-btn {
