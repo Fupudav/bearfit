@@ -1,27 +1,23 @@
 const CACHE_NAME = "bearfit-v1";
-const SCOPE = self.registration.scope.replace(/\/$/, "");
-const ASSET_PATHS = [
-  "",
-  "index.html",
-  "manifest.json",
-  "styles.css",
-  "js/achievements_def.js",
-  "storage.js",
-  "data_challenges.js",
-  "challenges_ui.js",
-  "navigation.js",
-  "ui.js",
-  "stats_ui.js",
-  "league_ui.js",
-  "success_ui.js",
-  "combined_ui.js",
-  "session_ui.js",
-  "icons/icon-192.svg",
-  "icons/icon-512.svg",
+const ASSETS = [
+  "/bearfit/",
+  "/bearfit/index.html",
+  "/bearfit/manifest.json",
+  "/bearfit/styles.css",
+  "/bearfit/js/achievements_def.js",
+  "/bearfit/storage.js",
+  "/bearfit/data_challenges.js",
+  "/bearfit/challenges_ui.js",
+  "/bearfit/navigation.js",
+  "/bearfit/ui.js",
+  "/bearfit/stats_ui.js",
+  "/bearfit/league_ui.js",
+  "/bearfit/success_ui.js",
+  "/bearfit/combined_ui.js",
+  "/bearfit/session_ui.js",
+  "/bearfit/icons/icon-192.svg",
+  "/bearfit/icons/icon-512.svg"
 ];
-const ASSETS = ASSET_PATHS.map((path) =>
-  path ? `${SCOPE}/${path}` : `${SCOPE}/`
-);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
