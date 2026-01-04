@@ -59,6 +59,10 @@ function normalizeIsoDate(value) {
   return null;
 }
 
+function normalizeDateKey(value) {
+  return normalizeIsoDate(value);
+}
+
 function getWeekStartISO(date = new Date()) {
   const copy = new Date(date);
   const dayIndex = (copy.getDay() + 6) % 7;
@@ -782,8 +786,79 @@ function loadUserData() {
     return structuredClone(defaultUserData);
   }
   const data = JSON.parse(raw);
-  const today = new Date().toDateString();
+  const today = isoToday();
   let lastTrainingDateUpdated = false;
+  let storedDateUpdated = false;
+
+  const normalizedLastTrainingDate = normalizeDateKey(data.lastTrainingDate);
+  if (normalizedLastTrainingDate !== data.lastTrainingDate) {
+    data.lastTrainingDate = normalizedLastTrainingDate;
+    lastTrainingDateUpdated = true;
+  }
+
+  const normalizedLastXpDate = normalizeDateKey(data.lastXpDate);
+  if (normalizedLastXpDate !== data.lastXpDate) {
+    data.lastXpDate = normalizedLastXpDate;
+    storedDateUpdated = true;
+  }
+
+  const normalizedDailyXpGoalBonusDate = normalizeDateKey(
+    data.dailyXpGoalBonusDate
+  );
+  if (normalizedDailyXpGoalBonusDate !== data.dailyXpGoalBonusDate) {
+    data.dailyXpGoalBonusDate = normalizedDailyXpGoalBonusDate;
+    storedDateUpdated = true;
+  }
+
+  if (data.xpToday && typeof data.xpToday === "object") {
+    const normalizedXpTodayKey = normalizeDateKey(data.xpToday.dateKey);
+    if (normalizedXpTodayKey !== data.xpToday.dateKey) {
+      data.xpToday.dateKey = normalizedXpTodayKey;
+      storedDateUpdated = true;
+    }
+  }
+
+  if (data.dailyObjectives && typeof data.dailyObjectives === "object") {
+    const normalizedObjectiveKey = normalizeDateKey(
+      data.dailyObjectives.dateKey
+    );
+    if (normalizedObjectiveKey !== data.dailyObjectives.dateKey) {
+      data.dailyObjectives.dateKey = normalizedObjectiveKey;
+      storedDateUpdated = true;
+    }
+  }
+
+  if (data.dailyCounters && typeof data.dailyCounters === "object") {
+    const normalizedCounterKey = normalizeDateKey(data.dailyCounters.dateKey);
+    if (normalizedCounterKey !== data.dailyCounters.dateKey) {
+      data.dailyCounters.dateKey = normalizedCounterKey;
+      storedDateUpdated = true;
+    }
+  }
+
+  if (data.lastChallengeTrainingDate && typeof data.lastChallengeTrainingDate === "object") {
+    CHALLENGE_IDS.forEach((challengeId) => {
+      const normalizedChallengeDate = normalizeDateKey(
+        data.lastChallengeTrainingDate[challengeId]
+      );
+      if (normalizedChallengeDate !== data.lastChallengeTrainingDate[challengeId]) {
+        data.lastChallengeTrainingDate[challengeId] = normalizedChallengeDate;
+        storedDateUpdated = true;
+      }
+    });
+  }
+
+  if (data.challenges && typeof data.challenges === "object") {
+    CHALLENGE_IDS.forEach((challengeId) => {
+      const progress = data.challenges[challengeId];
+      if (!progress || typeof progress !== "object") return;
+      const normalizedCompletedDate = normalizeDateKey(progress.lastCompletedDate);
+      if (normalizedCompletedDate !== progress.lastCompletedDate) {
+        progress.lastCompletedDate = normalizedCompletedDate;
+        storedDateUpdated = true;
+      }
+    });
+  }
 
   const statsUpdated = ensureStatsDefaults(data);
   const xpTodayUpdated = ensureXpTodayDefaults(data, today);
@@ -799,11 +874,6 @@ function loadUserData() {
   const leagueHistoryUpdated = ensureLeagueHistoryDefaults(data);
   const settingsUpdated = ensureSettingsDefaults(data);
   let achievementsUpdated = false;
-  const normalizedLastTrainingDate = normalizeIsoDate(data.lastTrainingDate);
-  if (normalizedLastTrainingDate !== data.lastTrainingDate) {
-    data.lastTrainingDate = normalizedLastTrainingDate;
-    lastTrainingDateUpdated = true;
-  }
 
   if (!data.achievements || typeof data.achievements !== "object") {
     data.achievements = {};
@@ -828,7 +898,8 @@ function loadUserData() {
     leagueUpdated ||
     leagueHistoryUpdated ||
     settingsUpdated ||
-    lastTrainingDateUpdated
+    lastTrainingDateUpdated ||
+    storedDateUpdated
   ) {
     saveUserData(data);
   }
@@ -904,7 +975,7 @@ function maybeResetStreakOnOpen() {
 
 function updateChallengeStreak(challengeId) {
   if (!challengeId) return;
-  const today = new Date().toDateString();
+  const today = isoToday();
 
   if (!userData.challengeStreaks) {
     userData.challengeStreaks = structuredClone(
@@ -924,7 +995,7 @@ function updateChallengeStreak(challengeId) {
 
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayKey = yesterday.toDateString();
+  const yesterdayKey = toLocalIsoDate(yesterday);
 
   if (userData.lastChallengeTrainingDate[challengeId] === yesterdayKey) {
     userData.challengeStreaks[challengeId] =
@@ -1187,7 +1258,7 @@ function getTodayChallengeProgram(challengeId) {
   }
   if (isTodayOffDay()) return null;
 
-  const todayKey = new Date().toDateString();
+  const todayKey = isoToday();
   if (progress.lastCompletedDate === todayKey) return null;
 
   const level = progress.level;
@@ -1218,7 +1289,7 @@ function completeChallengeDay(challengeId) {
   const challenge = challengePrograms[challengeId];
 
   if (!progress || !challenge) return false;
-  const todayKey = new Date().toDateString();
+  const todayKey = isoToday();
   if (progress.lastCompletedDate === todayKey) return false;
 
   const currentLevel = progress.level;
@@ -1289,7 +1360,7 @@ function computeSessionVolume(session) {
 }
 
 function ensureXpToday() {
-  const todayKey = new Date().toDateString();
+  const todayKey = isoToday();
 
   if (!userData.xpToday || typeof userData.xpToday !== "object") {
     userData.xpToday = structuredClone(defaultUserData.xpToday);
@@ -1308,7 +1379,7 @@ function ensureXpToday() {
 }
 
 function ensureDailyCounters() {
-  const todayKey = new Date().toDateString();
+  const todayKey = isoToday();
 
   if (!userData.dailyCounters || typeof userData.dailyCounters !== "object") {
     userData.dailyCounters = structuredClone(defaultUserData.dailyCounters);
@@ -1332,7 +1403,7 @@ function ensureDailyCounters() {
 }
 
 function ensureDailyObjectives() {
-  const todayKey = new Date().toDateString();
+  const todayKey = isoToday();
 
   if (
     !userData.dailyObjectives ||
