@@ -124,6 +124,44 @@ function showToast(message) {
   toast.dataset.timeoutId = String(timeoutId);
 }
 
+function requestReminderNotificationPermission() {
+  if (!("Notification" in window)) {
+    return Promise.resolve("unsupported");
+  }
+  if (Notification.permission !== "default") {
+    return Promise.resolve(Notification.permission);
+  }
+  return Notification.requestPermission();
+}
+
+function triggerReminderNotification(message, toastMessage = message) {
+  if (!("Notification" in window)) {
+    showToast(toastMessage);
+    return;
+  }
+
+  if (Notification.permission !== "granted") {
+    showToast(toastMessage);
+    return;
+  }
+
+  if (document.visibilityState === "visible") {
+    new Notification(message);
+    return;
+  }
+
+  if (navigator.serviceWorker?.ready) {
+    navigator.serviceWorker.ready
+      .then((registration) => registration?.showNotification(message))
+      .catch(() => {
+        new Notification(message);
+      });
+    return;
+  }
+
+  new Notification(message);
+}
+
 function getDelayUntil(timeString) {
   if (!timeString || typeof timeString !== "string") return null;
   const [hours, minutes] = timeString.split(":").map(Number);
@@ -151,7 +189,7 @@ function scheduleReminderTimeout(key, timeString, onTrigger) {
   }, delay);
 }
 
-function scheduleReminders() {
+function scheduleReminders(reminderTexts = {}) {
   Object.values(reminderTimeouts).forEach((timeoutId) => {
     if (timeoutId) {
       clearTimeout(timeoutId);
@@ -161,12 +199,15 @@ function scheduleReminders() {
 
   if (!userData.settings?.remindersEnabled) return;
 
+  const dailyText = reminderTexts.daily ?? "Fais ta séance";
+  const xpGoalText = reminderTexts.xpGoal ?? "Objectif XP pas atteint";
+
   scheduleReminderTimeout("daily", userData.settings.reminderDailyTime, () => {
     const today = typeof window.isoToday === "function"
       ? window.isoToday()
       : new Date().toISOString().slice(0, 10);
     if (userData.lastTrainingDate !== today) {
-      showToast("Fais ta séance");
+      triggerReminderNotification(dailyText, dailyText);
     }
   });
 
@@ -174,7 +215,7 @@ function scheduleReminders() {
     const todayXp = userData.xpToday?.value ?? 0;
     const goal = userData.settings?.dailyXpGoal ?? 0;
     if (todayXp < goal) {
-      showToast("Objectif XP pas atteint");
+      triggerReminderNotification(xpGoalText, xpGoalText);
     }
   });
 }
@@ -305,6 +346,15 @@ function updateSettingsUI() {
       remindersToggle.addEventListener("change", (event) => {
         userData.settings.remindersEnabled = event.target.checked;
         saveUserData(userData);
+        if (event.target.checked) {
+          requestReminderNotificationPermission().then((permission) => {
+            if (permission === "denied") {
+              showToast(
+                "Notifications refusées, les rappels utiliseront un toast."
+              );
+            }
+          });
+        }
         scheduleReminders();
       });
       remindersToggle.dataset.bound = "true";
