@@ -1,22 +1,23 @@
 const CACHE_NAME = "bearfit-v1";
+const SCOPE = self.registration.scope;
 const ASSETS = [
-  "/bearfit/",
-  "/bearfit/index.html",
-  "/bearfit/manifest.json",
-  "/bearfit/styles.css",
-  "/bearfit/js/achievements_def.js",
-  "/bearfit/storage.js",
-  "/bearfit/data_challenges.js",
-  "/bearfit/challenges_ui.js",
-  "/bearfit/navigation.js",
-  "/bearfit/ui.js",
-  "/bearfit/stats_ui.js",
-  "/bearfit/league_ui.js",
-  "/bearfit/success_ui.js",
-  "/bearfit/combined_ui.js",
-  "/bearfit/session_ui.js",
-  "/bearfit/icons/icon-192.svg",
-  "/bearfit/icons/icon-512.svg"
+  SCOPE,
+  new URL("index.html", SCOPE).toString(),
+  new URL("manifest.json", SCOPE).toString(),
+  new URL("styles.css", SCOPE).toString(),
+  new URL("js/achievements_def.js", SCOPE).toString(),
+  new URL("storage.js", SCOPE).toString(),
+  new URL("data_challenges.js", SCOPE).toString(),
+  new URL("challenges_ui.js", SCOPE).toString(),
+  new URL("navigation.js", SCOPE).toString(),
+  new URL("ui.js", SCOPE).toString(),
+  new URL("stats_ui.js", SCOPE).toString(),
+  new URL("league_ui.js", SCOPE).toString(),
+  new URL("success_ui.js", SCOPE).toString(),
+  new URL("combined_ui.js", SCOPE).toString(),
+  new URL("session_ui.js", SCOPE).toString(),
+  new URL("icons/icon-192.svg", SCOPE).toString(),
+  new URL("icons/icon-512.svg", SCOPE).toString()
 ];
 
 self.addEventListener("install", (event) => {
