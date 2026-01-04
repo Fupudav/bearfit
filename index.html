@@ -59,6 +59,34 @@
           <p>Strike global : <span id="stats-streak">0</span> jours</p>
         </div>
 
+        <div class="card stats-history">
+          <div class="stats-history-header">
+            <h3>Historique journalier</h3>
+            <label>
+              Fenêtre
+              <select id="stats-history-range">
+                <option value="7">7 jours</option>
+                <option value="30">30 jours</option>
+              </select>
+            </label>
+          </div>
+          <p id="stats-history-window" class="stats-history-window">7 derniers jours</p>
+          <div class="stats-history-grid">
+            <div class="stats-history-block">
+              <p>XP</p>
+              <div id="stats-history-xp" class="stats-history-chart"></div>
+            </div>
+            <div class="stats-history-block">
+              <p>Volume</p>
+              <div id="stats-history-volume" class="stats-history-chart"></div>
+            </div>
+            <div class="stats-history-block">
+              <p>Séances</p>
+              <div id="stats-history-sessions" class="stats-history-chart stats-history-line"></div>
+            </div>
+          </div>
+        </div>
+
         <div class="card">
           <h3>Pompes</h3>
           <p>Total : <span id="stats-total-pompes">0</span></p>

@@ -35,6 +35,8 @@ const OFF_DAYS_PATTERNS = {
 };
 
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+const DAILY_HISTORY_RETENTION_DAYS = 120;
+const DAILY_HISTORY_MAX_ENTRIES = 120;
 
 function toLocalIsoDate(date) {
   const timezoneOffset = date.getTimezoneOffset() * 60000;
@@ -119,6 +121,8 @@ const defaultUserData = {
     triceps: 0,
     bench: 0,
   },
+
+  dailyHistory: [],
 
   stats: {
     totalPompes: 0,
@@ -542,6 +546,90 @@ function ensureDailyCountersDefaults(data) {
   return updated;
 }
 
+function compactDailyHistory(data = userData) {
+  if (!data || !Array.isArray(data.dailyHistory)) return false;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - DAILY_HISTORY_RETENTION_DAYS);
+  const cutoffKey = toLocalIsoDate(cutoff);
+
+  const sorted = data.dailyHistory
+    .filter((entry) => entry?.dateKey && entry.dateKey >= cutoffKey)
+    .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+
+  const trimmed =
+    sorted.length > DAILY_HISTORY_MAX_ENTRIES
+      ? sorted.slice(-DAILY_HISTORY_MAX_ENTRIES)
+      : sorted;
+
+  const changed =
+    trimmed.length !== data.dailyHistory.length ||
+    trimmed.some((entry, index) => entry !== data.dailyHistory[index]);
+
+  if (changed) {
+    data.dailyHistory = trimmed;
+  }
+
+  return changed;
+}
+
+function ensureDailyHistoryDefaults(data) {
+  let updated = false;
+
+  if (!Array.isArray(data.dailyHistory)) {
+    data.dailyHistory = [];
+    return true;
+  }
+
+  const entryMap = new Map();
+
+  data.dailyHistory.forEach((entry) => {
+    if (!entry || typeof entry !== "object") {
+      updated = true;
+      return;
+    }
+    const normalizedDateKey = normalizeDateKey(entry.dateKey);
+    if (!normalizedDateKey) {
+      updated = true;
+      return;
+    }
+    const normalizedEntry = {
+      dateKey: normalizedDateKey,
+      xp: Number.isFinite(entry.xp) ? entry.xp : 0,
+      volume: Number.isFinite(entry.volume) ? entry.volume : 0,
+      sessions: Number.isFinite(entry.sessions) ? entry.sessions : 0,
+    };
+
+    const existing = entryMap.get(normalizedDateKey);
+    if (existing) {
+      existing.xp += normalizedEntry.xp;
+      existing.volume += normalizedEntry.volume;
+      existing.sessions += normalizedEntry.sessions;
+      updated = true;
+    } else {
+      entryMap.set(normalizedDateKey, normalizedEntry);
+    }
+
+    if (
+      normalizedEntry.xp !== entry.xp ||
+      normalizedEntry.volume !== entry.volume ||
+      normalizedEntry.sessions !== entry.sessions ||
+      normalizedEntry.dateKey !== entry.dateKey
+    ) {
+      updated = true;
+    }
+  });
+
+  data.dailyHistory = Array.from(entryMap.values()).sort((a, b) =>
+    a.dateKey.localeCompare(b.dateKey)
+  );
+
+  if (compactDailyHistory(data)) {
+    updated = true;
+  }
+
+  return updated;
+}
+
 function formatWeightValue(value) {
   if (!Number.isFinite(value)) return "";
   if (Number.isInteger(value)) return `${value}`;
@@ -864,6 +952,7 @@ function loadUserData() {
   const xpTodayUpdated = ensureXpTodayDefaults(data, today);
   const dailyObjectivesUpdated = ensureDailyObjectivesDefaults(data);
   const dailyCountersUpdated = ensureDailyCountersDefaults(data);
+  const dailyHistoryUpdated = ensureDailyHistoryDefaults(data);
   const challengeStreaksUpdated = ensureChallengeStreakDefaults(data);
   const lastChallengeTrainingDateUpdated =
     ensureLastChallengeTrainingDateDefaults(data);
@@ -890,6 +979,7 @@ function loadUserData() {
     xpTodayUpdated ||
     dailyObjectivesUpdated ||
     dailyCountersUpdated ||
+    dailyHistoryUpdated ||
     challengeStreaksUpdated ||
     lastChallengeTrainingDateUpdated ||
     unlockedAchievementsUpdated ||
@@ -933,6 +1023,7 @@ function addXp(amount) {
   userData.xp += amount;
   userData.xpToday.value += amount;
   userData.lastXpDate = userData.xpToday.dateKey;
+  updateDailyHistoryEntry(userData.xpToday.dateKey, { xpDelta: amount });
   addWeekXp(amount);
   saveUserData(userData);
 }
@@ -1008,6 +1099,31 @@ function updateChallengeStreak(challengeId) {
   saveUserData(userData);
 }
 
+function getDailyHistoryWindow(days, endDateKey = isoToday()) {
+  const totalDays = Number.isFinite(days) ? Math.max(1, Math.min(60, days)) : 7;
+  const entries = Array.isArray(userData.dailyHistory)
+    ? userData.dailyHistory
+    : [];
+  const entryMap = new Map(entries.map((entry) => [entry.dateKey, entry]));
+
+  const result = [];
+  const endDate = new Date(`${endDateKey}T00:00:00`);
+  for (let offset = totalDays - 1; offset >= 0; offset -= 1) {
+    const date = new Date(endDate);
+    date.setDate(endDate.getDate() - offset);
+    const dateKey = toLocalIsoDate(date);
+    const entry = entryMap.get(dateKey);
+    result.push({
+      dateKey,
+      xp: entry?.xp ?? 0,
+      volume: entry?.volume ?? 0,
+      sessions: entry?.sessions ?? 0,
+    });
+  }
+
+  return result;
+}
+
 // EXPORT SI BESOIN
 window.userData = userData;
 window.addXp = addXp;
@@ -1031,6 +1147,7 @@ window.isChallengeActive = isChallengeActive;
 window.isTodayOffDay = isTodayOffDay;
 window.getOffDaysPattern = getOffDaysPattern;
 window.isCombinedSessionAvailable = isCombinedSessionAvailable;
+window.getDailyHistoryWindow = getDailyHistoryWindow;
 
 function getMetricValue(pathString) {
   if (!pathString) return 0;
@@ -1439,6 +1556,43 @@ function ensureDailyCounters() {
   return userData.dailyCounters;
 }
 
+function updateDailyHistoryEntry(
+  dateKey,
+  { xpDelta = 0, volumeDelta = 0, sessionsDelta = 0 } = {}
+) {
+  if (!dateKey) return;
+
+  if (!userData.dailyHistory || !Array.isArray(userData.dailyHistory)) {
+    userData.dailyHistory = [];
+  }
+
+  const existingIndex = userData.dailyHistory.findIndex(
+    (entry) => entry?.dateKey === dateKey
+  );
+  const entry =
+    existingIndex >= 0
+      ? userData.dailyHistory[existingIndex]
+      : { dateKey, xp: 0, volume: 0, sessions: 0 };
+
+  entry.xp = Math.max(0, (Number.isFinite(entry.xp) ? entry.xp : 0) + xpDelta);
+  entry.volume = Math.max(
+    0,
+    (Number.isFinite(entry.volume) ? entry.volume : 0) + volumeDelta
+  );
+  entry.sessions = Math.max(
+    0,
+    (Number.isFinite(entry.sessions) ? entry.sessions : 0) + sessionsDelta
+  );
+
+  if (existingIndex >= 0) {
+    userData.dailyHistory[existingIndex] = entry;
+  } else {
+    userData.dailyHistory.push(entry);
+  }
+
+  compactDailyHistory(userData);
+}
+
 function ensureDailyObjectives() {
   const todayKey = isoToday();
 
@@ -1548,6 +1702,7 @@ function recordDailySessionVolume(session) {
       break;
   }
 
+  updateDailyHistoryEntry(counters.dateKey, { volumeDelta: volume });
   saveUserData(userData);
 }
 
@@ -1560,6 +1715,7 @@ function recordDailySessionCompletion(isCombined = false) {
   if (userData.stats) {
     userData.stats.totalSessions = (userData.stats.totalSessions || 0) + 1;
   }
+  updateDailyHistoryEntry(counters.dateKey, { sessionsDelta: 1 });
   saveUserData(userData);
 }
 
