@@ -224,12 +224,14 @@ function updateStepDisplay() {
 
 function updateMainButton() {
   const mainBtn = document.getElementById("session-complete-btn");
+  const targetBtn = document.getElementById("session-validate-target-btn");
   if (!mainBtn) return;
 
   if (sessionState.phase === "idle") {
     mainBtn.textContent = "Démarrer la séance";
     mainBtn.style.display = "block";
     mainBtn.disabled = false;
+    if (targetBtn) targetBtn.style.display = "none";
     return;
   }
 
@@ -237,15 +239,26 @@ function updateMainButton() {
     const step = sessionState.steps[sessionState.stepIndex];
     if (!step) {
       mainBtn.style.display = "none";
+      if (targetBtn) targetBtn.style.display = "none";
       return;
     }
-    mainBtn.textContent = step.type === "time" ? "Démarrer" : "Valider la série";
+    if (step.type === "time") {
+      mainBtn.textContent = "Démarrer";
+      if (targetBtn) targetBtn.style.display = "none";
+    } else {
+      mainBtn.textContent = "Saisir la valeur";
+      if (targetBtn) {
+        targetBtn.textContent = "Valider la cible";
+        targetBtn.style.display = "inline-block";
+      }
+    }
     mainBtn.style.display = "block";
     mainBtn.disabled = false;
     return;
   }
 
   mainBtn.style.display = "none";
+  if (targetBtn) targetBtn.style.display = "none";
 }
 
 function updateRestDisplay() {
@@ -534,18 +547,39 @@ function startRestPhase() {
   }, 1000);
 }
 
-function validateCurrentStep(performedValue) {
+function validateCurrentStep(performedValue, { skipPrompt = false } = {}) {
   const step = sessionState.steps[sessionState.stepIndex];
   if (!step) return;
 
-  applySeriesResult(step, performedValue);
+  let finalValue = performedValue;
+  if (finalValue === undefined || finalValue === null) {
+    if (skipPrompt) return;
+    const unitLabel = step.type === "reps" ? "répétitions" : "secondes";
+    const response = prompt(
+      `Saisis les ${unitLabel} réalisées (cible : ${step.target}).`,
+      step.target
+    );
+    if (response === null) return;
+    if (response.trim() === "") {
+      finalValue = step.target;
+    } else {
+      const parsed = Number(response.replace(",", "."));
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        alert("Entre une valeur valide.");
+        return;
+      }
+      finalValue = parsed;
+    }
+  }
+
+  applySeriesResult(step, finalValue);
 
   sessionState.completedSteps.push({
     ...step,
-    performedValue,
+    performedValue: finalValue,
   });
 
-  sessionState.xpEarnedThisSession += computeStepXp(step, performedValue);
+  sessionState.xpEarnedThisSession += computeStepXp(step, finalValue);
   triggerVibration(90);
   startRestPhase();
   renderSessionUI();
@@ -589,7 +623,7 @@ function startTimeWork(step) {
     if (remaining <= 0) {
       clearIntervalSafe(sessionState.workIntervalId);
       sessionState.workIntervalId = null;
-      validateCurrentStep(step.target);
+      validateCurrentStep(step.target, { skipPrompt: true });
     }
   }, 1000);
 }
@@ -610,7 +644,7 @@ function handleMainButtonClick() {
   if (!step) return;
 
   if (step.type === "reps") {
-    validateCurrentStep(step.target);
+    validateCurrentStep();
     return;
   }
 
@@ -619,6 +653,13 @@ function handleMainButtonClick() {
     if (mainBtn) mainBtn.disabled = true;
     startTimeCountdown(step);
   }
+}
+
+function handleTargetValidationClick() {
+  if (sessionState.phase !== "work") return;
+  const step = sessionState.steps[sessionState.stepIndex];
+  if (!step || step.type !== "reps") return;
+  validateCurrentStep(step.target, { skipPrompt: true });
 }
 
 function skipRest() {
@@ -693,6 +734,7 @@ function renderRecap() {
   const recapDuration = document.getElementById("session-recap-duration");
   const recapXp = document.getElementById("session-recap-xp");
   const recapProgress = document.getElementById("session-recap-progress");
+  const recapSteps = document.getElementById("session-recap-steps");
   const recapRecords = document.getElementById("session-recap-records");
 
   if (recapTitle) {
@@ -739,6 +781,24 @@ function renderRecap() {
       const li = document.createElement("li");
       li.textContent = "Aucun nouveau record.";
       recapRecords.appendChild(li);
+    }
+  }
+
+  if (recapSteps) {
+    recapSteps.innerHTML = "";
+    if (sessionState.completedSteps.length) {
+      sessionState.completedSteps.forEach((step) => {
+        const li = document.createElement("li");
+        const unitLabel = step.type === "reps" ? "répétitions" : "secondes";
+        li.textContent = `${getExerciseLabel(step.exerciseKey)} : ${
+          step.performedValue
+        } ${unitLabel} (cible ${step.target})`;
+        recapSteps.appendChild(li);
+      });
+    } else {
+      const li = document.createElement("li");
+      li.textContent = "Aucune série enregistrée.";
+      recapSteps.appendChild(li);
     }
   }
 }
@@ -978,6 +1038,16 @@ if (sessionFreeAddBtn) {
 const sessionFreeEndBtn = document.getElementById("session-free-end");
 if (sessionFreeEndBtn) {
   sessionFreeEndBtn.addEventListener("click", endFreeSessionEarly);
+}
+
+const sessionTargetValidateBtn = document.getElementById(
+  "session-validate-target-btn"
+);
+if (sessionTargetValidateBtn) {
+  sessionTargetValidateBtn.addEventListener(
+    "click",
+    handleTargetValidationClick
+  );
 }
 
 const sessionRecapHomeBtn = document.getElementById("session-recap-home-btn");
