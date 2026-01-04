@@ -460,9 +460,9 @@ button:disabled {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  #stats,
-  #leagues,
-  #success {
+  #stats.screen.active,
+  #leagues.screen.active,
+  #success.screen.active {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 12px;
