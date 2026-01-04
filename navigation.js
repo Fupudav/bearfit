@@ -6,11 +6,13 @@ const navButtons = document.querySelectorAll(".nav-btn");
 function showScreen(screenId) {
   screens.forEach((screen) => {
     screen.classList.remove("active");
+    screen.hidden = true;
   });
 
   const target = document.getElementById(screenId);
   if (target) {
     target.classList.add("active");
+    target.hidden = false;
   }
 
   navButtons.forEach((btn) => {
