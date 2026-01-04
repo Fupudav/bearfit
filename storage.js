@@ -1088,6 +1088,16 @@ function evaluateAchievements() {
     window.__recentUnlocks = [];
   }
 
+  const getRewardForLevel = (definition, levelIndex) => {
+    if (Array.isArray(definition.rewardXp)) {
+      return Number(definition.rewardXp[levelIndex]) || 0;
+    }
+    if (Number.isFinite(definition.rewardXp)) {
+      return definition.rewardXp;
+    }
+    return 0;
+  };
+
   window.ACHIEVEMENTS.forEach((def) => {
     const value = getMetricValue(def.metric);
     const state =
@@ -1106,21 +1116,36 @@ function evaluateAchievements() {
         ...Array(def.thresholds.length - state.claimedLevels.length).fill(false),
       ];
     }
+    if (state.levelIndex >= 0) {
+      for (let i = 0; i <= state.levelIndex; i += 1) {
+        state.claimedLevels[i] = true;
+      }
+    }
 
     const newLevelIndex = def.thresholds.reduce((acc, threshold, index) => {
       if (value >= threshold) return index;
       return acc;
     }, -1);
 
-    if (newLevelIndex > state.levelIndex) {
-      for (let i = state.levelIndex + 1; i <= newLevelIndex; i += 1) {
+    const newlyClaimedLevels = [];
+    if (newLevelIndex > -1) {
+      for (let i = 0; i <= newLevelIndex; i += 1) {
+        if (state.claimedLevels[i]) continue;
         state.claimedLevels[i] = true;
         userData.achievementEvents.push({
           id: def.id,
           levelIndex: i,
           ts: Date.now(),
         });
+        newlyClaimedLevels.push(i);
+        const rewardXp = getRewardForLevel(def, i);
+        if (rewardXp > 0) {
+          addXp(rewardXp);
+        }
       }
+    }
+
+    if (newLevelIndex > state.levelIndex) {
       state.levelIndex = newLevelIndex;
       userData.unlockedAchievements[def.id] = {
         levelIndex: newLevelIndex,
@@ -1128,7 +1153,19 @@ function evaluateAchievements() {
         value,
         ts: Date.now(),
       };
+    }
+
+    if (newlyClaimedLevels.length > 0) {
       window.__recentUnlocks.push(def.id);
+      if (typeof window.showToast === "function") {
+        newlyClaimedLevels.forEach((levelIndex) => {
+          const tier = def.tiers?.[levelIndex];
+          const rewardXp = getRewardForLevel(def, levelIndex);
+          const tierLabel = tier ? ` (${tier})` : "";
+          const rewardLabel = rewardXp ? ` +${rewardXp} XP` : "";
+          window.showToast(`Succès débloqué : ${def.name}${tierLabel}${rewardLabel}`);
+        });
+      }
     }
 
     state.currentValue = value;
