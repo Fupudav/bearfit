@@ -1016,8 +1016,33 @@ function resetUserData() {
 let userData = loadUserData();
 maybeResetStreakOnOpen();
 ensureLeagueWeekUpToDate();
+maybeGrantDailyXpGoalReroll();
 
 // MISE À JOUR DES XP
+function maybeGrantDailyXpGoalReroll({ save = true } = {}) {
+  ensureXpToday();
+  ensureDailyObjectives();
+
+  const goal = userData.settings?.dailyXpGoal ?? 0;
+  if (goal <= 0) return false;
+
+  const todayKey = userData.xpToday?.dateKey ?? isoToday();
+  if (userData.dailyXpGoalBonusDate === todayKey) return false;
+  if (userData.xpToday.value < goal) return false;
+
+  if (!userData.dailyObjectives) return false;
+
+  userData.dailyObjectives.rerollsLeft =
+    (userData.dailyObjectives.rerollsLeft ?? 0) + 1;
+  userData.dailyXpGoalBonusDate = todayKey;
+
+  if (save) {
+    saveUserData(userData);
+  }
+
+  return true;
+}
+
 function addXp(amount) {
   ensureXpToday();
   userData.xp += amount;
@@ -1025,6 +1050,7 @@ function addXp(amount) {
   userData.lastXpDate = userData.xpToday.dateKey;
   updateDailyHistoryEntry(userData.xpToday.dateKey, { xpDelta: amount });
   addWeekXp(amount);
+  maybeGrantDailyXpGoalReroll({ save: false });
   saveUserData(userData);
 }
 
