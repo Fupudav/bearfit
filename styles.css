@@ -231,6 +231,12 @@ button:disabled {
   margin-bottom: 12px;
 }
 
+.hint-text {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted-text);
+}
+
 .stats-history-header {
   display: flex;
   justify-content: space-between;
