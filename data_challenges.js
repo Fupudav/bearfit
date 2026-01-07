@@ -11,6 +11,8 @@ const challengePrograms = {
   pushups: {
     id: "pushups",
     name: "Challenge Pompes",
+    description:
+      "Programme progressif en pompes pour améliorer l'endurance et la force du haut du corps.",
     type: "reps",
     levels: {
       1: {
@@ -183,6 +185,8 @@ const challengePrograms = {
   plank: {
     id: "plank",
     name: "Challenge Gainage",
+    description:
+      "Séances de gainage pour renforcer le tronc et tenir plus longtemps en position stable.",
     type: "time",
     levels: {
       1: {
@@ -355,6 +359,8 @@ const challengePrograms = {
   abs: {
     id: "abs",
     name: "Challenge Abdos",
+    description:
+      "Séries d'abdos pour renforcer la sangle abdominale et stabiliser le centre du corps.",
     type: "reps",
     levels: {
       1: {
@@ -527,6 +533,8 @@ const challengePrograms = {
   triceps: {
     id: "triceps",
     name: "Challenge Triceps haltères",
+    description:
+      "Séances avec haltères pour renforcer les triceps et progresser en charge.",
     type: "reps",
     hasWeight: true,
     weightUnit: "kg",
@@ -712,6 +720,8 @@ const challengePrograms = {
   bench: {
     id: "bench",
     name: "Challenge Développé couché",
+    description:
+      "Programme de développé couché pour gagner en force et en volume au fil des semaines.",
     type: "reps",
     hasWeight: true,
     weightUnit: "kg",
