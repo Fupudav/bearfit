@@ -306,6 +306,42 @@ button:disabled {
   font-weight: 600;
 }
 
+.league-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.league-list-item {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+}
+
+.league-list-item h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.league-list-item p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted-text);
+}
+
+.league-list-item.is-current {
+  background: var(--leaderboard-user-bg);
+  color: var(--leaderboard-user-text);
+  border-color: transparent;
+}
+
+.league-list-item.is-current p {
+  color: inherit;
+}
+
 .modal {
   position: fixed;
   inset: 0;

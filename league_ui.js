@@ -97,6 +97,31 @@ function buildLeagueEntries() {
   return entries;
 }
 
+function renderLeagueList(leagueData) {
+  const listEl = document.getElementById("league-list");
+  if (!listEl) return;
+
+  listEl.textContent = "";
+  LEAGUE_DEFINITIONS.forEach((definition, index) => {
+    const leagueNumber = index + 1;
+    const item = document.createElement("li");
+    item.className = "league-list-item";
+    if (leagueData?.currentLeague === leagueNumber) {
+      item.classList.add("is-current");
+    }
+
+    const title = document.createElement("h4");
+    title.textContent = `Ligue ${leagueNumber} — ${definition.name}`;
+
+    const description = document.createElement("p");
+    description.textContent = definition.description;
+
+    item.appendChild(title);
+    item.appendChild(description);
+    listEl.appendChild(item);
+  });
+}
+
 function renderLeagues() {
   if (!document.getElementById("league-current-name")) return;
   if (window.ensureLeagueWeekUpToDate) {
@@ -112,6 +137,8 @@ function renderLeagues() {
   const xpEl = document.getElementById("league-week-xp");
   const bestEl = document.getElementById("league-best");
   const remainingEl = document.getElementById("league-time-remaining");
+  const listCard = document.getElementById("league-list-card");
+  const toggleListBtn = document.getElementById("league-toggle-list");
 
   if (nameEl) {
     nameEl.textContent = `Ligue ${leagueData.currentLeague} — ${leagueInfo.name}`;
@@ -128,6 +155,22 @@ function renderLeagues() {
   if (remainingEl) {
     remainingEl.textContent = formatTimeRemaining(leagueData.weekStartISO);
   }
+  if (listCard && toggleListBtn) {
+    if (!toggleListBtn.dataset.bound) {
+      toggleListBtn.addEventListener("click", () => {
+        const isHidden = listCard.classList.toggle("hidden");
+        toggleListBtn.textContent = isHidden
+          ? "Voir toutes les ligues"
+          : "Masquer les ligues";
+      });
+      toggleListBtn.dataset.bound = "true";
+    }
+    toggleListBtn.textContent = listCard.classList.contains("hidden")
+      ? "Voir toutes les ligues"
+      : "Masquer les ligues";
+  }
+
+  renderLeagueList(leagueData);
 
   const leaderboardEl = document.getElementById("league-leaderboard");
   if (leaderboardEl) {
