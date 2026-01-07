@@ -103,6 +103,7 @@ const defaultUserData = {
   streakGlobal: 0,
   lastTrainingDate: null,
   dailyXpGoalBonusDate: null,
+  achievementsInitialized: false,
   dailyObjectives: {
     dateKey: null,
     main: null,
@@ -525,6 +526,15 @@ function ensureUnlockedAchievementsDefaults(data) {
 function ensureDailyXpGoalBonusDateDefaults(data) {
   if (data.dailyXpGoalBonusDate === undefined) {
     data.dailyXpGoalBonusDate = null;
+    return true;
+  }
+
+  return false;
+}
+
+function ensureAchievementsInitializedDefaults(data) {
+  if (data.achievementsInitialized === undefined) {
+    data.achievementsInitialized = false;
     return true;
   }
 
@@ -1019,6 +1029,8 @@ function normalizeUserData(rawData) {
     ensureLastChallengeTrainingDateDefaults(data);
   const challengesUpdated = ensureChallengesDefaults(data);
   const unlockedAchievementsUpdated = ensureUnlockedAchievementsDefaults(data);
+  const achievementsInitializedUpdated =
+    ensureAchievementsInitializedDefaults(data);
   const dailyXpGoalBonusDateUpdated =
     ensureDailyXpGoalBonusDateDefaults(data);
   const leagueUpdated = ensureLeagueDefaults(data);
@@ -1048,6 +1060,7 @@ function normalizeUserData(rawData) {
     lastChallengeTrainingDateUpdated ||
     challengesUpdated ||
     unlockedAchievementsUpdated ||
+    achievementsInitializedUpdated ||
     achievementsUpdated ||
     dailyXpGoalBonusDateUpdated ||
     leagueUpdated ||
@@ -1116,7 +1129,7 @@ ensureLeagueWeekUpToDate();
 maybeGrantDailyXpGoalReroll();
 
 // MISE À JOUR DES XP
-function maybeGrantDailyXpGoalReroll({ save = true } = {}) {
+function maybeGrantDailyXpGoalReroll({ save = true, previousXp = null } = {}) {
   ensureXpToday();
   ensureDailyObjectives();
 
@@ -1125,6 +1138,7 @@ function maybeGrantDailyXpGoalReroll({ save = true } = {}) {
 
   const todayKey = userData.xpToday?.dateKey ?? isoToday();
   if (userData.dailyXpGoalBonusDate === todayKey) return false;
+  if (previousXp !== null && previousXp >= goal) return false;
   if (userData.xpToday.value < goal) return false;
 
   if (!userData.dailyObjectives) return false;
@@ -1142,12 +1156,13 @@ function maybeGrantDailyXpGoalReroll({ save = true } = {}) {
 
 function addXp(amount) {
   ensureXpToday();
+  const previousXp = userData.xpToday.value;
   userData.xp += amount;
   userData.xpToday.value += amount;
   userData.lastXpDate = userData.xpToday.dateKey;
   updateDailyHistoryEntry(userData.xpToday.dateKey, { xpDelta: amount });
   addWeekXp(amount);
-  maybeGrantDailyXpGoalReroll({ save: false });
+  maybeGrantDailyXpGoalReroll({ save: false, previousXp });
   saveUserData(userData);
 }
 
@@ -1328,6 +1343,47 @@ function evaluateAchievements() {
 
   if (!Array.isArray(window.__recentUnlocks)) {
     window.__recentUnlocks = [];
+  }
+
+  const hasAchievementState =
+    Object.keys(userData.achievements).length > 0 ||
+    Object.keys(userData.unlockedAchievements).length > 0 ||
+    userData.achievementEvents.length > 0;
+  const xpTodayValue = userData.xpToday?.value ?? 0;
+  const isFreshProfile =
+    !hasAchievementState && userData.xp === 0 && xpTodayValue === 0;
+
+  if (!userData.achievementsInitialized && isFreshProfile) {
+    window.ACHIEVEMENTS.forEach((def) => {
+      const value = getMetricValue(def.metric);
+      const levelIndex = def.thresholds.reduce((acc, threshold, index) => {
+        if (value >= threshold) return index;
+        return acc;
+      }, -1);
+
+      const claimedLevels = Array(def.thresholds.length).fill(false);
+      if (levelIndex >= 0) {
+        for (let i = 0; i <= levelIndex; i += 1) {
+          claimedLevels[i] = true;
+        }
+        userData.unlockedAchievements[def.id] = {
+          levelIndex,
+          tier: def.tiers?.[levelIndex] ?? null,
+          value,
+          ts: Date.now(),
+        };
+      }
+
+      userData.achievements[def.id] = {
+        levelIndex,
+        currentValue: value,
+        claimedLevels,
+      };
+    });
+
+    userData.achievementsInitialized = true;
+    saveUserData(userData);
+    return;
   }
 
   const getRewardForLevel = (definition, levelIndex) => {
