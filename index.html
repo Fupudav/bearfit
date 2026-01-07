@@ -363,6 +363,23 @@
         <p>Pseudo : <span id="profile-name"></span></p>
         <p>Ligue : <span id="profile-league"></span></p>
         <p>XP total : <span id="profile-xp"></span></p>
+        <div class="card">
+          <h3>Sauvegarde</h3>
+          <p class="hint-text">
+            Exportez vos données pour sauvegarder votre progression ou importez
+            une sauvegarde existante.
+          </p>
+          <button id="profile-export-btn">Exporter la sauvegarde</button>
+          <button id="profile-import-btn" class="secondary">
+            Importer une sauvegarde
+          </button>
+          <input
+            type="file"
+            id="profile-import-file"
+            class="hidden"
+            accept="application/json"
+          />
+        </div>
         <button id="profile-reset-btn" class="secondary">
           Réinitialiser le profil
         </button>

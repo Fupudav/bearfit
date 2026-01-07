@@ -512,3 +512,72 @@ document
     window.resetUserData();
     alert("Profil réinitialisé.");
   });
+
+function getBackupFilename() {
+  const date =
+    typeof window.isoToday === "function"
+      ? window.isoToday()
+      : new Date().toISOString().slice(0, 10);
+  return `bearfit-sauvegarde-${date}.json`;
+}
+
+const exportBtn = document.getElementById("profile-export-btn");
+if (exportBtn && !exportBtn.dataset.bound) {
+  exportBtn.addEventListener("click", () => {
+    if (typeof window.exportUserData !== "function") return;
+    const payload = window.exportUserData();
+    const blob = new Blob([payload], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = getBackupFilename();
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showToast("Sauvegarde exportée.");
+  });
+  exportBtn.dataset.bound = "true";
+}
+
+const importBtn = document.getElementById("profile-import-btn");
+const importInput = document.getElementById("profile-import-file");
+if (importBtn && importInput && !importBtn.dataset.bound) {
+  importBtn.addEventListener("click", () => {
+    importInput.click();
+  });
+  importBtn.dataset.bound = "true";
+}
+
+if (importInput && !importInput.dataset.bound) {
+  importInput.addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const confirmed = window.confirm(
+      "Importer cette sauvegarde ? Les données actuelles seront remplacées."
+    );
+    if (!confirmed) {
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      const result =
+        typeof window.importUserData === "function"
+          ? window.importUserData(payload)
+          : { success: false, message: "Import indisponible." };
+      if (result?.success) {
+        showToast("Sauvegarde importée.");
+      } else {
+        showToast(result?.message || "Impossible d'importer la sauvegarde.");
+      }
+    } catch (error) {
+      showToast("Fichier de sauvegarde invalide.");
+    } finally {
+      event.target.value = "";
+    }
+  });
+  importInput.dataset.bound = "true";
+}

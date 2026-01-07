@@ -340,6 +340,56 @@ function ensureSettingsDefaults(data) {
   return updated;
 }
 
+function ensureProfileDefaults(data) {
+  let updated = false;
+
+  if (!data.profile || typeof data.profile !== "object") {
+    data.profile = structuredClone(defaultUserData.profile);
+    return true;
+  }
+
+  Object.entries(defaultUserData.profile).forEach(([key, value]) => {
+    if (data.profile[key] === undefined) {
+      data.profile[key] = value;
+      updated = true;
+    }
+  });
+
+  return updated;
+}
+
+function ensureChallengesDefaults(data) {
+  let updated = false;
+
+  if (!data.challenges || typeof data.challenges !== "object") {
+    data.challenges = structuredClone(defaultUserData.challenges);
+    return true;
+  }
+
+  CHALLENGE_IDS.forEach((challengeId) => {
+    const progress = data.challenges[challengeId];
+    const defaultProgress = defaultUserData.challenges[challengeId];
+
+    if (!progress || typeof progress !== "object") {
+      data.challenges[challengeId] = structuredClone(defaultProgress);
+      updated = true;
+      return;
+    }
+
+    if (!Number.isFinite(progress.level)) {
+      progress.level = defaultProgress.level;
+      updated = true;
+    }
+
+    if (!Number.isFinite(progress.day)) {
+      progress.day = defaultProgress.day;
+      updated = true;
+    }
+  });
+
+  return updated;
+}
+
 function ensureLeagueDefaults(data) {
   let updated = false;
   const defaultWeekStart = getWeekStartISO(new Date());
@@ -866,15 +916,18 @@ function pickRandomObjective(options) {
   return options[Math.floor(Math.random() * options.length)];
 }
 
-// CHARGEMENT DES DONNÉES
-function loadUserData() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    saveUserData(defaultUserData);
-    return structuredClone(defaultUserData);
-  }
-  const data = JSON.parse(raw);
+function normalizeUserData(rawData) {
   const today = isoToday();
+  let updated = false;
+  const data =
+    rawData && typeof rawData === "object"
+      ? structuredClone(rawData)
+      : structuredClone(defaultUserData);
+
+  if (!rawData || typeof rawData !== "object") {
+    updated = true;
+  }
+
   let lastTrainingDateUpdated = false;
   let storedDateUpdated = false;
 
@@ -924,12 +977,17 @@ function loadUserData() {
     }
   }
 
-  if (data.lastChallengeTrainingDate && typeof data.lastChallengeTrainingDate === "object") {
+  if (
+    data.lastChallengeTrainingDate &&
+    typeof data.lastChallengeTrainingDate === "object"
+  ) {
     CHALLENGE_IDS.forEach((challengeId) => {
       const normalizedChallengeDate = normalizeDateKey(
         data.lastChallengeTrainingDate[challengeId]
       );
-      if (normalizedChallengeDate !== data.lastChallengeTrainingDate[challengeId]) {
+      if (
+        normalizedChallengeDate !== data.lastChallengeTrainingDate[challengeId]
+      ) {
         data.lastChallengeTrainingDate[challengeId] = normalizedChallengeDate;
         storedDateUpdated = true;
       }
@@ -940,7 +998,9 @@ function loadUserData() {
     CHALLENGE_IDS.forEach((challengeId) => {
       const progress = data.challenges[challengeId];
       if (!progress || typeof progress !== "object") return;
-      const normalizedCompletedDate = normalizeDateKey(progress.lastCompletedDate);
+      const normalizedCompletedDate = normalizeDateKey(
+        progress.lastCompletedDate
+      );
       if (normalizedCompletedDate !== progress.lastCompletedDate) {
         progress.lastCompletedDate = normalizedCompletedDate;
         storedDateUpdated = true;
@@ -948,6 +1008,7 @@ function loadUserData() {
     });
   }
 
+  const profileUpdated = ensureProfileDefaults(data);
   const statsUpdated = ensureStatsDefaults(data);
   const xpTodayUpdated = ensureXpTodayDefaults(data, today);
   const dailyObjectivesUpdated = ensureDailyObjectivesDefaults(data);
@@ -956,6 +1017,7 @@ function loadUserData() {
   const challengeStreaksUpdated = ensureChallengeStreakDefaults(data);
   const lastChallengeTrainingDateUpdated =
     ensureLastChallengeTrainingDateDefaults(data);
+  const challengesUpdated = ensureChallengesDefaults(data);
   const unlockedAchievementsUpdated = ensureUnlockedAchievementsDefaults(data);
   const dailyXpGoalBonusDateUpdated =
     ensureDailyXpGoalBonusDateDefaults(data);
@@ -974,7 +1036,9 @@ function loadUserData() {
     achievementsUpdated = true;
   }
 
-  if (
+  updated =
+    updated ||
+    profileUpdated ||
     statsUpdated ||
     xpTodayUpdated ||
     dailyObjectivesUpdated ||
@@ -982,6 +1046,7 @@ function loadUserData() {
     dailyHistoryUpdated ||
     challengeStreaksUpdated ||
     lastChallengeTrainingDateUpdated ||
+    challengesUpdated ||
     unlockedAchievementsUpdated ||
     achievementsUpdated ||
     dailyXpGoalBonusDateUpdated ||
@@ -989,17 +1054,49 @@ function loadUserData() {
     leagueHistoryUpdated ||
     settingsUpdated ||
     lastTrainingDateUpdated ||
-    storedDateUpdated
-  ) {
+    storedDateUpdated;
+
+  return { data, updated };
+}
+
+// CHARGEMENT DES DONNÉES
+function loadUserData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    saveUserData(defaultUserData);
+    return structuredClone(defaultUserData);
+  }
+  const parsed = JSON.parse(raw);
+  const { data, updated } = normalizeUserData(parsed);
+  if (updated) {
     saveUserData(data);
   }
-
   return data;
 }
 
 // SAUVEGARDE DES DONNÉES
 function saveUserData(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function exportUserData() {
+  return JSON.stringify(userData, null, 2);
+}
+
+function importUserData(rawData) {
+  if (!rawData || typeof rawData !== "object") {
+    return { success: false, message: "Fichier de sauvegarde invalide." };
+  }
+
+  const { data } = normalizeUserData(rawData);
+  userData = data;
+  saveUserData(userData);
+  window.userData = userData;
+  if (window.refreshUI) {
+    window.refreshUI();
+  }
+
+  return { success: true };
 }
 
 function resetUserData() {
@@ -1174,6 +1271,8 @@ window.isTodayOffDay = isTodayOffDay;
 window.getOffDaysPattern = getOffDaysPattern;
 window.isCombinedSessionAvailable = isCombinedSessionAvailable;
 window.getDailyHistoryWindow = getDailyHistoryWindow;
+window.exportUserData = exportUserData;
+window.importUserData = importUserData;
 
 function getMetricValue(pathString) {
   if (!pathString) return 0;
