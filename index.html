@@ -223,7 +223,27 @@
         </button>
 
         <div id="session-free-actions" class="session-free-actions">
+          <div class="session-free-form">
+            <div>
+              <label for="session-free-exercise">Exercice :</label>
+              <select id="session-free-exercise"></select>
+            </div>
+            <div>
+              <label for="session-free-type">Type :</label>
+              <select id="session-free-type"></select>
+            </div>
+            <div>
+              <label for="session-free-value">Valeur :</label>
+              <input type="number" id="session-free-value" min="1" />
+            </div>
+            <p id="session-free-weight-row">
+              Poids recommandé : <span id="session-free-weight"></span>
+            </p>
+          </div>
           <button id="session-free-add" class="secondary">Ajouter une série</button>
+          <button id="session-free-add-exercise" class="secondary">
+            Ajouter un exercice
+          </button>
           <button id="session-free-end">Terminer la séance</button>
         </div>
 

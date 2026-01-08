@@ -654,6 +654,20 @@ button:disabled {
   gap: 8px;
 }
 
+.session-free-form {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #151515;
+  border: 1px solid #2a2a2a;
+}
+
+.session-free-form label {
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
 .recap {
   margin-top: 16px;
   padding: 12px;
