@@ -751,6 +751,7 @@ function getCurrentChallengeWeightInfo(challengeId) {
 
 window.getChallengeWeightInfo = getChallengeWeightInfo;
 window.getCurrentChallengeWeightInfo = getCurrentChallengeWeightInfo;
+window.formatChallengeWeightLabel = formatChallengeWeightLabel;
 
 function clampTarget(expected, minimum) {
   const rawTarget = Math.round(expected * 0.7);
