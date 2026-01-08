@@ -143,6 +143,77 @@ function getRestTime(exerciseKey) {
   }
 }
 
+function formatWeightValue(value) {
+  if (!Number.isFinite(value)) return "";
+  if (Number.isInteger(value)) return `${value}`;
+  return `${Math.round(value * 10) / 10}`;
+}
+
+function formatWeightLabel(challenge, weightValue) {
+  if (!challenge || !Number.isFinite(weightValue)) return "";
+  if (typeof window.formatChallengeWeightLabel === "function") {
+    return window.formatChallengeWeightLabel(challenge, weightValue);
+  }
+
+  const unit = challenge.weightUnit || "kg";
+  const perDumbbell = weightValue;
+  const totalMultiplier = challenge.weightTotalMultiplier || 1;
+  const total = perDumbbell * totalMultiplier;
+
+  const perLabel = `${formatWeightValue(perDumbbell)} ${unit}`;
+  const totalLabel = `${formatWeightValue(total)} ${unit}`;
+
+  switch (challenge.weightDisplay) {
+    case "perDumbbellPlusTotal":
+      return `${perLabel} / haltère (${totalLabel} total)`;
+    case "perDumbbell":
+      return `${perLabel} / haltère`;
+    case "total":
+      return `${totalLabel} total`;
+    default:
+      return perLabel;
+  }
+}
+
+function updateStepWeightFromPrompt(step) {
+  const challenge = challengePrograms?.[step.exerciseKey];
+  if (!challenge?.hasWeight) return true;
+
+  const unit = challenge.weightUnit || "kg";
+  const weightModeLabel =
+    challenge.weightMode === "perDumbbell"
+      ? "par haltère"
+      : "utilisé";
+  const defaultValue = Number.isFinite(step.weightValue)
+    ? step.weightValue
+    : null;
+
+  const response = prompt(
+    `Poids ${weightModeLabel} (${unit}) :`,
+    defaultValue === null ? "" : formatWeightValue(defaultValue)
+  );
+
+  if (response === null) {
+    return false;
+  }
+
+  if (response.trim() === "") {
+    return true;
+  }
+
+  const parsed = Number(response.replace(",", "."));
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    alert("Entre un poids valide.");
+    return false;
+  }
+
+  const totalMultiplier = challenge.weightTotalMultiplier || 1;
+  step.weightValue = parsed;
+  step.weightKgTotal = parsed * totalMultiplier;
+  step.weightLabel = formatWeightLabel(challenge, parsed);
+  return true;
+}
+
 function updateGlobalTimer() {
   if (!sessionState.globalStartTs) return;
   const elapsed = Math.floor((Date.now() - sessionState.globalStartTs) / 1000);
@@ -572,6 +643,10 @@ function validateCurrentStep(performedValue, { skipPrompt = false } = {}) {
     }
   }
 
+  if (step.type === "reps" && !updateStepWeightFromPrompt(step)) {
+    return;
+  }
+
   applySeriesResult(step, finalValue);
 
   sessionState.completedSteps.push({
@@ -688,6 +763,7 @@ function buildChallengeStep(session, value, serieIndex) {
     label: `${getExerciseLabel(session.challengeId)} — Série ${
       serieIndex + 1
     }`,
+    weightValue: weightInfo?.value ?? null,
     weightKgTotal,
     weightLabel,
     level: session.level,
@@ -790,9 +866,10 @@ function renderRecap() {
       sessionState.completedSteps.forEach((step) => {
         const li = document.createElement("li");
         const unitLabel = step.type === "reps" ? "répétitions" : "secondes";
+        const weightLabel = step.weightLabel ? ` — ${step.weightLabel}` : "";
         li.textContent = `${getExerciseLabel(step.exerciseKey)} : ${
           step.performedValue
-        } ${unitLabel} (cible ${step.target})`;
+        } ${unitLabel} (cible ${step.target})${weightLabel}`;
         recapSteps.appendChild(li);
       });
     } else {
@@ -889,6 +966,7 @@ function startFreeSessionFromForm() {
     type,
     target,
     label: `${getExerciseLabel(exerciseKey)} — Série 1`,
+    weightValue: weightInfo?.value ?? null,
     weightKgTotal: weightInfo?.value
       ? weightInfo.value * totalMultiplier
       : null,
