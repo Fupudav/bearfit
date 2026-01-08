@@ -1,6 +1,7 @@
 // RÉCUPÉRATION DES ÉCRANS
 const screens = document.querySelectorAll(".screen");
 const navButtons = document.querySelectorAll(".nav-btn");
+const screenButtons = document.querySelectorAll("[data-screen]");
 
 // FONCTION D'AFFICHAGE D'ÉCRAN
 function showScreen(screenId) {
@@ -41,7 +42,7 @@ function showScreen(screenId) {
 }
 
 // ÉVÉNEMENTS SUR LES BOUTONS
-navButtons.forEach((button) => {
+screenButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const screenId = button.dataset.screen;
     showScreen(screenId);

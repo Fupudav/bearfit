@@ -111,6 +111,33 @@ main {
   display: block;
 }
 
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-header h2 {
+  margin: 0;
+}
+
+.home-settings-btn {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  margin-top: 0;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 18px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* NAVIGATION BASSE */
 .bottom-nav {
   position: fixed;

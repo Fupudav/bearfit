@@ -25,7 +25,12 @@
 
       <!-- Écran Accueil -->
       <section id="home" class="screen active">
-        <h2>Accueil</h2>
+        <div class="home-header">
+          <h2>Accueil</h2>
+          <button class="home-settings-btn" data-screen="settings" type="button" aria-label="Réglages">
+            ⚙️
+          </button>
+        </div>
         <p>Strike global : <span id="home-streak">0</span> jours</p>
         <p>Objectif XP du jour : <span id="home-daily-target">40</span></p>
         <p>XP aujourd'hui : <span id="home-today-xp">0</span></p>
@@ -435,7 +440,6 @@
       <button data-screen="stats" class="nav-btn">Stats</button>
       <button data-screen="leagues" class="nav-btn">Ligues</button>
       <button data-screen="free" class="nav-btn">Séance libre</button>
-      <button data-screen="settings" class="nav-btn">Réglages</button>
       <button data-screen="success" class="nav-btn">Succès</button>
       <button data-screen="profile" class="nav-btn">Profil</button>
     </nav>
