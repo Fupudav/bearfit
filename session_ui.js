@@ -925,33 +925,21 @@ function startCombinedSession(combinedSession) {
   });
 }
 
-function startFreeSessionFromForm() {
-  const exerciseSelect = document.getElementById("free-exercise");
-  const typeSelect = document.getElementById("free-type");
-  const valueInput = document.getElementById("free-value");
+function getFreeFormElements(prefix = "free") {
+  return {
+    exerciseSelect: document.getElementById(`${prefix}-exercise`),
+    typeSelect: document.getElementById(`${prefix}-type`),
+    valueInput: document.getElementById(`${prefix}-value`),
+    weightRow: document.getElementById(`${prefix}-weight-row`),
+    weightValue: document.getElementById(`${prefix}-weight`),
+  };
+}
 
-  if (!exerciseSelect || !typeSelect || !valueInput) return;
+function getNextFreeSeriesIndex(exerciseKey, steps = sessionState.steps) {
+  return steps.filter((step) => step.exerciseKey === exerciseKey).length + 1;
+}
 
-  const exerciseKey = exerciseSelect.value;
-  const type = typeSelect.value;
-  const target = Number(valueInput.value);
-
-  if (!exerciseKey) {
-    alert("Sélectionne un exercice disponible.");
-    return;
-  }
-
-  if (!target || target <= 0) {
-    alert("Entre une valeur valide.");
-    return;
-  }
-
-  const allowedTypes = getAllowedFreeTypes(exerciseKey);
-  if (!allowedTypes.includes(type)) {
-    alert("Type de séance indisponible pour cet exercice.");
-    return;
-  }
-
+function buildFreeStep(exerciseKey, type, target, steps = sessionState.steps) {
   const weightInfo =
     typeof window.getCurrentChallengeWeightInfo === "function"
       ? window.getCurrentChallengeWeightInfo(exerciseKey)
@@ -959,13 +947,14 @@ function startFreeSessionFromForm() {
   const challenge = challengePrograms[exerciseKey];
   const totalMultiplier =
     challenge?.weightTotalMultiplier || (challenge?.hasWeight ? 2 : 1);
+  const seriesIndex = getNextFreeSeriesIndex(exerciseKey, steps);
 
-  const step = {
+  return {
     challengeId: null,
     exerciseKey,
     type,
     target,
-    label: `${getExerciseLabel(exerciseKey)} — Série 1`,
+    label: `${getExerciseLabel(exerciseKey)} — Série ${seriesIndex}`,
     weightValue: weightInfo?.value ?? null,
     weightKgTotal: weightInfo?.value
       ? weightInfo.value * totalMultiplier
@@ -973,27 +962,77 @@ function startFreeSessionFromForm() {
     weightLabel: weightInfo?.label || "",
     level: null,
   };
+}
+
+function appendFreeStep(step) {
+  sessionState.steps.push(step);
+  updateStepDisplay();
+  updateXpPreview();
+}
+
+function readFreeForm(prefix = "free") {
+  const { exerciseSelect, typeSelect, valueInput } = getFreeFormElements(prefix);
+  if (!exerciseSelect || !typeSelect || !valueInput) return null;
+
+  const exerciseKey = exerciseSelect.value;
+  const type = typeSelect.value;
+  const target = Number(valueInput.value);
+
+  if (!exerciseKey) {
+    alert("Sélectionne un exercice disponible.");
+    return null;
+  }
+
+  if (!target || target <= 0) {
+    alert("Entre une valeur valide.");
+    return null;
+  }
+
+  const allowedTypes = getAllowedFreeTypes(exerciseKey);
+  if (!allowedTypes.includes(type)) {
+    alert("Type de séance indisponible pour cet exercice.");
+    return null;
+  }
+
+  return { exerciseKey, type, target };
+}
+
+function startFreeSessionFromForm() {
+  const values = readFreeForm("free");
+  if (!values) return;
+
+  const step = buildFreeStep(
+    values.exerciseKey,
+    values.type,
+    values.target,
+    []
+  );
 
   startSessionEngine({
     mode: "free",
     steps: [step],
     title: "Séance libre",
-    subtitle: getExerciseLabel(exerciseKey),
+    subtitle: "Entraînement libre",
   });
 }
 
 function addFreeSeries() {
   if (sessionState.mode !== "free" || !sessionState.steps.length) return;
   const lastStep = sessionState.steps[sessionState.steps.length - 1];
-  const newStep = {
-    ...lastStep,
-    label: `${getExerciseLabel(lastStep.exerciseKey)} — Série ${
-      sessionState.steps.length + 1
-    }`,
-  };
-  sessionState.steps.push(newStep);
-  updateStepDisplay();
-  updateXpPreview();
+  const newStep = buildFreeStep(
+    lastStep.exerciseKey,
+    lastStep.type,
+    lastStep.target
+  );
+  appendFreeStep(newStep);
+}
+
+function addFreeExerciseFromForm() {
+  if (sessionState.mode !== "free") return;
+  const values = readFreeForm("session-free");
+  if (!values) return;
+  const newStep = buildFreeStep(values.exerciseKey, values.type, values.target);
+  appendFreeStep(newStep);
 }
 
 function endFreeSessionEarly() {
@@ -1010,10 +1049,9 @@ function handleRecapReturnHome() {
   showScreen("home");
 }
 
-function updateFreeWeightUI() {
-  const exerciseSelect = document.getElementById("free-exercise");
-  const weightRow = document.getElementById("free-weight-row");
-  const weightValue = document.getElementById("free-weight");
+function updateFreeWeightUI(prefix = "free") {
+  const { exerciseSelect, weightRow, weightValue } =
+    getFreeFormElements(prefix);
 
   if (!exerciseSelect || !weightRow || !weightValue) return;
 
@@ -1039,8 +1077,8 @@ function getAllowedFreeTypes(exerciseKey) {
   return ["reps", "time"];
 }
 
-function updateFreeTypeOptions(exerciseKey) {
-  const typeSelect = document.getElementById("free-type");
+function updateFreeTypeOptions(exerciseKey, prefix = "free") {
+  const { typeSelect } = getFreeFormElements(prefix);
   if (!typeSelect) return;
 
   const allowedTypes = getAllowedFreeTypes(exerciseKey);
@@ -1064,8 +1102,8 @@ function updateFreeTypeOptions(exerciseKey) {
   }
 }
 
-function updateFreeExerciseOptions() {
-  const exerciseSelect = document.getElementById("free-exercise");
+function updateFreeExerciseOptions(prefix = "free") {
+  const { exerciseSelect } = getFreeFormElements(prefix);
   if (!exerciseSelect) return;
 
   const activeIds =
@@ -1082,8 +1120,8 @@ function updateFreeExerciseOptions() {
     option.disabled = true;
     option.selected = true;
     exerciseSelect.appendChild(option);
-    updateFreeTypeOptions("");
-    updateFreeWeightUI();
+    updateFreeTypeOptions("", prefix);
+    updateFreeWeightUI(prefix);
     return;
   }
 
@@ -1094,8 +1132,8 @@ function updateFreeExerciseOptions() {
     exerciseSelect.appendChild(option);
   });
 
-  updateFreeTypeOptions(exerciseSelect.value);
-  updateFreeWeightUI();
+  updateFreeTypeOptions(exerciseSelect.value, prefix);
+  updateFreeWeightUI(prefix);
 }
 
 const sessionMainBtn = document.getElementById("session-complete-btn");
@@ -1111,6 +1149,13 @@ if (sessionSkipRestBtn) {
 const sessionFreeAddBtn = document.getElementById("session-free-add");
 if (sessionFreeAddBtn) {
   sessionFreeAddBtn.addEventListener("click", addFreeSeries);
+}
+
+const sessionFreeAddExerciseBtn = document.getElementById(
+  "session-free-add-exercise"
+);
+if (sessionFreeAddExerciseBtn) {
+  sessionFreeAddExerciseBtn.addEventListener("click", addFreeExerciseFromForm);
 }
 
 const sessionFreeEndBtn = document.getElementById("session-free-end");
@@ -1141,14 +1186,31 @@ if (freeStartBtn) {
 document
   .getElementById("free-exercise")
   ?.addEventListener("change", (event) => {
-    updateFreeTypeOptions(event.target.value);
-    updateFreeWeightUI();
+    updateFreeTypeOptions(event.target.value, "free");
+    updateFreeWeightUI("free");
   });
 
-updateFreeExerciseOptions();
-updateFreeWeightUI();
+const sessionFreeExerciseSelect = document.getElementById(
+  "session-free-exercise"
+);
+if (sessionFreeExerciseSelect) {
+  sessionFreeExerciseSelect.addEventListener("change", (event) => {
+    updateFreeTypeOptions(event.target.value, "session-free");
+    updateFreeWeightUI("session-free");
+  });
+}
+
+updateFreeExerciseOptions("free");
+updateFreeWeightUI("free");
+updateFreeExerciseOptions("session-free");
+updateFreeWeightUI("session-free");
 
 window.startSession = startSoloSession;
 window.startCombinedSession = startCombinedSession;
 window.buildCombinedStepsFromSessions = buildCombinedStepsFromSessions;
-window.updateFreeExerciseOptions = updateFreeExerciseOptions;
+window.updateFreeExerciseOptions = () => {
+  updateFreeExerciseOptions("free");
+  updateFreeExerciseOptions("session-free");
+  updateFreeWeightUI("free");
+  updateFreeWeightUI("session-free");
+};
