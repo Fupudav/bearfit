@@ -480,7 +480,7 @@ function addDailyVolumeFromSteps() {
 }
 
 function maybeApplyDailyXpGoalBonus() {
-  const today = new Date().toDateString();
+  const today = isoToday();
   const goal = userData.settings?.dailyXpGoal ?? 0;
   if (!goal) return 0;
 
