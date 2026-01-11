@@ -70,7 +70,7 @@ function getWeekStartISO(date = new Date()) {
   const dayIndex = (copy.getDay() + 6) % 7;
   copy.setDate(copy.getDate() - dayIndex);
   copy.setHours(0, 0, 0, 0);
-  return copy.toISOString().slice(0, 10);
+  return toLocalIsoDate(copy);
 }
 
 function getLeagueXpRange(league) {
