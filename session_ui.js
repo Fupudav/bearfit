@@ -25,6 +25,10 @@ const sessionState = {
   challengeResults: [],
 };
 
+const freeDraftState = {
+  steps: [],
+};
+
 let audioContext = null;
 
 function shouldPlaySound() {
@@ -970,6 +974,56 @@ function appendFreeStep(step) {
   updateXpPreview();
 }
 
+function recomputeFreeSeriesLabels(steps) {
+  const counts = {};
+  steps.forEach((step) => {
+    counts[step.exerciseKey] = (counts[step.exerciseKey] || 0) + 1;
+    step.label = `${getExerciseLabel(step.exerciseKey)} — Série ${
+      counts[step.exerciseKey]
+    }`;
+  });
+}
+
+function renderFreeDraftSteps() {
+  const listEl = document.getElementById("free-planned-list");
+  const emptyEl = document.getElementById("free-planned-empty");
+  const startBtn = document.getElementById("btn-free-start");
+  if (!listEl || !emptyEl || !startBtn) return;
+
+  listEl.innerHTML = "";
+  if (!freeDraftState.steps.length) {
+    emptyEl.style.display = "block";
+    startBtn.disabled = true;
+    return;
+  }
+
+  emptyEl.style.display = "none";
+  startBtn.disabled = false;
+
+  freeDraftState.steps.forEach((step, index) => {
+    const item = document.createElement("li");
+    const label = step.type === "reps" ? "répétitions" : "secondes";
+    const weightLabel = step.weightLabel ? ` — ${step.weightLabel}` : "";
+
+    const text = document.createElement("span");
+    text.textContent = `${getExerciseLabel(step.exerciseKey)} — ${step.target} ${label}${weightLabel}`;
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "secondary";
+    removeBtn.textContent = "Retirer";
+    removeBtn.addEventListener("click", () => {
+      freeDraftState.steps.splice(index, 1);
+      recomputeFreeSeriesLabels(freeDraftState.steps);
+      renderFreeDraftSteps();
+    });
+
+    item.appendChild(text);
+    item.appendChild(removeBtn);
+    listEl.appendChild(item);
+  });
+}
+
 function readFreeForm(prefix = "free") {
   const { exerciseSelect, typeSelect, valueInput } = getFreeFormElements(prefix);
   if (!exerciseSelect || !typeSelect || !valueInput) return null;
@@ -997,23 +1051,38 @@ function readFreeForm(prefix = "free") {
   return { exerciseKey, type, target };
 }
 
-function startFreeSessionFromForm() {
+function addFreeDraftStepFromForm() {
   const values = readFreeForm("free");
   if (!values) return;
-
   const step = buildFreeStep(
     values.exerciseKey,
     values.type,
     values.target,
-    []
+    freeDraftState.steps
   );
+  freeDraftState.steps.push(step);
+  const { valueInput } = getFreeFormElements("free");
+  if (valueInput) {
+    valueInput.value = "";
+  }
+  renderFreeDraftSteps();
+}
+
+function startFreeSessionFromForm() {
+  if (!freeDraftState.steps.length) {
+    addFreeDraftStepFromForm();
+  }
+
+  if (!freeDraftState.steps.length) return;
 
   startSessionEngine({
     mode: "free",
-    steps: [step],
+    steps: [...freeDraftState.steps],
     title: "Séance libre",
     subtitle: "Entraînement libre",
   });
+  freeDraftState.steps = [];
+  renderFreeDraftSteps();
 }
 
 function addFreeSeries() {
@@ -1183,6 +1252,11 @@ if (freeStartBtn) {
   freeStartBtn.addEventListener("click", startFreeSessionFromForm);
 }
 
+const freeAddBtn = document.getElementById("btn-free-add");
+if (freeAddBtn) {
+  freeAddBtn.addEventListener("click", addFreeDraftStepFromForm);
+}
+
 document
   .getElementById("free-exercise")
   ?.addEventListener("change", (event) => {
@@ -1204,6 +1278,7 @@ updateFreeExerciseOptions("free");
 updateFreeWeightUI("free");
 updateFreeExerciseOptions("session-free");
 updateFreeWeightUI("session-free");
+renderFreeDraftSteps();
 
 window.startSession = startSoloSession;
 window.startCombinedSession = startCombinedSession;

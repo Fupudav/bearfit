@@ -684,6 +684,40 @@ button:disabled {
   padding-left: 18px;
 }
 
+.free-planned {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #151515;
+  border: 1px solid #2a2a2a;
+}
+
+.free-planned h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.free-planned ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.free-planned li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.free-planned li button {
+  flex-shrink: 0;
+}
+
+.muted {
+  color: var(--muted-text);
+}
+
 /* SETTINGS */
 .settings-item {
   margin-bottom: 14px;
