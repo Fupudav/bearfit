@@ -22,7 +22,11 @@ const sessionState = {
   xpEarnedThisSession: 0,
   exerciseVolumes: {},
   completedSteps: [],
-  challengeResults: [],
+  challengeResults: {
+    completed: [],
+    skipped: [],
+  },
+  isFinalizing: false,
 };
 
 const freeDraftState = {
@@ -87,6 +91,15 @@ function clearIntervalSafe(intervalId) {
   }
 }
 
+function safeInvoke(fn, label) {
+  if (typeof fn !== "function") return;
+  try {
+    fn();
+  } catch (error) {
+    console.error(`Erreur pendant ${label}`, error);
+  }
+}
+
 function resetSessionState() {
   clearIntervalSafe(sessionState.globalTimerIntervalId);
   clearIntervalSafe(sessionState.restIntervalId);
@@ -108,7 +121,11 @@ function resetSessionState() {
   sessionState.xpEarnedThisSession = 0;
   sessionState.exerciseVolumes = {};
   sessionState.completedSteps = [];
-  sessionState.challengeResults = [];
+  sessionState.challengeResults = {
+    completed: [],
+    skipped: [],
+  };
+  sessionState.isFinalizing = false;
 }
 
 function computeStepXp(step, performedValue) {
@@ -549,6 +566,8 @@ function finalizeSessionProgress() {
 }
 
 function finalizeSession() {
+  if (sessionState.isFinalizing || sessionState.phase === "recap") return;
+  sessionState.isFinalizing = true;
   stopGlobalTimer();
   clearIntervalSafe(sessionState.restIntervalId);
   clearIntervalSafe(sessionState.workIntervalId);
@@ -559,28 +578,22 @@ function finalizeSession() {
   addXp(sessionState.xpEarnedThisSession);
   const bonus = maybeApplyDailyXpGoalBonus();
   sessionState.xpEarnedThisSession += bonus;
-  if (window.ensureLeagueWeekUpToDate) {
-    window.ensureLeagueWeekUpToDate();
-  }
-
-  if (window.evaluateObjectivesAndMaybeReward) {
-    window.evaluateObjectivesAndMaybeReward();
-  }
-
-  if (window.evaluateAchievements) {
-    window.evaluateAchievements();
-  }
-
-  saveUserData(userData);
-  if (window.refreshUI) {
-    window.refreshUI();
-  }
-  playBeep(0.2, 520);
-  triggerVibration(160);
 
   sessionState.phase = "recap";
   renderRecap();
   renderSessionUI();
+
+  safeInvoke(window.ensureLeagueWeekUpToDate, "mise à jour des ligues");
+  safeInvoke(
+    window.evaluateObjectivesAndMaybeReward,
+    "mise à jour des objectifs"
+  );
+  safeInvoke(window.evaluateAchievements, "mise à jour des succès");
+
+  saveUserData(userData);
+  safeInvoke(window.refreshUI, "rafraîchissement UI");
+  playBeep(0.2, 520);
+  triggerVibration(160);
 }
 
 function finishIfLastStep() {

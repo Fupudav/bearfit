@@ -1,9 +1,14 @@
 function getAchievementProgress(definition) {
   const value = getMetricValue(definition.metric);
-  const levelIndex = definition.thresholds.reduce((acc, threshold, index) => {
+  const computedLevelIndex = definition.thresholds.reduce((acc, threshold, index) => {
     if (value >= threshold) return index;
     return acc;
   }, -1);
+  const storedLevelIndex =
+    userData?.achievements?.[definition.id]?.levelIndex ??
+    userData?.unlockedAchievements?.[definition.id]?.levelIndex ??
+    -1;
+  const levelIndex = Math.max(storedLevelIndex, computedLevelIndex);
   const nextThreshold = definition.thresholds[levelIndex + 1] ?? null;
   const tierName =
     levelIndex >= 0 ? definition.tiers?.[levelIndex] ?? null : null;
