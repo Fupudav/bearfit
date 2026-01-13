@@ -23,6 +23,7 @@ const sessionState = {
   exerciseVolumes: {},
   completedSteps: [],
   challengeResults: [],
+  isFinalizing: false,
 };
 
 const freeDraftState = {
@@ -109,6 +110,7 @@ function resetSessionState() {
   sessionState.exerciseVolumes = {};
   sessionState.completedSteps = [];
   sessionState.challengeResults = [];
+  sessionState.isFinalizing = false;
 }
 
 function computeStepXp(step, performedValue) {
@@ -549,6 +551,8 @@ function finalizeSessionProgress() {
 }
 
 function finalizeSession() {
+  if (sessionState.isFinalizing || sessionState.phase === "recap") return;
+  sessionState.isFinalizing = true;
   stopGlobalTimer();
   clearIntervalSafe(sessionState.restIntervalId);
   clearIntervalSafe(sessionState.workIntervalId);
@@ -559,6 +563,11 @@ function finalizeSession() {
   addXp(sessionState.xpEarnedThisSession);
   const bonus = maybeApplyDailyXpGoalBonus();
   sessionState.xpEarnedThisSession += bonus;
+
+  sessionState.phase = "recap";
+  renderRecap();
+  renderSessionUI();
+
   if (window.ensureLeagueWeekUpToDate) {
     window.ensureLeagueWeekUpToDate();
   }
@@ -577,10 +586,6 @@ function finalizeSession() {
   }
   playBeep(0.2, 520);
   triggerVibration(160);
-
-  sessionState.phase = "recap";
-  renderRecap();
-  renderSessionUI();
 }
 
 function finishIfLastStep() {
